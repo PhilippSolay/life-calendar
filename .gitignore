@@ -1,0 +1,32 @@
+## Swift / SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+*.xcodeproj/
+
+## Build output
+build/
+DerivedData/
+*.app
+*.dSYM/
+*.dSYM.zip
+
+## Xcode
+xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+
+## macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+## Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+## Logs
+*.log
