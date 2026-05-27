@@ -3,6 +3,10 @@ import SwiftUI
 /// Full-width 56 pt rounded button used on the Save page. Label on the left
 /// over a smaller subtitle, trailing chevron on the right. `prominent` swaps
 /// the glass background for the bright gradient (white → off-white) with dark text.
+///
+/// The button shows a visible "active" state on press: subtle scale down,
+/// brighter background, brighter stroke, brighter shadow on the prominent
+/// variant. Driven by `SaveActionButtonStyle.Configuration.isPressed`.
 struct SaveAction: View {
     let label: String
     let sub: String
@@ -25,18 +29,7 @@ struct SaveAction: View {
         Button(action: action) {
             content
         }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
-        .frame(height: 56)
-        .background(background)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .inset(by: 0.5)
-                .stroke(strokeColor, lineWidth: 1)
-        )
-        // CSS `0 6pt 20pt -8pt rgba(255,255,255,.4)` — a soft downward white glow.
-        .shadow(color: prominent ? Color.white.opacity(0.4) : .clear, radius: 10, x: 0, y: 6)
+        .buttonStyle(SaveActionButtonStyle(prominent: prominent))
     }
 
     @ViewBuilder
@@ -61,22 +54,6 @@ struct SaveAction: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
 
-    @ViewBuilder
-    private var background: some View {
-        if prominent {
-            LinearGradient(
-                stops: [
-                    .init(color: .white, location: 0.0),
-                    .init(color: Color(red: 233.0 / 255.0, green: 231.0 / 255.0, blue: 226.0 / 255.0), location: 1.0)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            Color.white.opacity(0.07)
-        }
-    }
-
     private var primaryText: Color {
         prominent
             ? Color(red: 20.0 / 255.0, green: 18.0 / 255.0, blue: 33.0 / 255.0)
@@ -88,9 +65,66 @@ struct SaveAction: View {
             ? Color(red: 20.0 / 255.0, green: 18.0 / 255.0, blue: 33.0 / 255.0).opacity(0.55)
             : Color.white.opacity(0.55)
     }
+}
 
-    private var strokeColor: Color {
-        prominent ? Color.white.opacity(0.6) : Color.white.opacity(0.10)
+private struct SaveActionButtonStyle: ButtonStyle {
+    let prominent: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(background(pressed: configuration.isPressed))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .inset(by: 0.5)
+                    .stroke(strokeColor(pressed: configuration.isPressed), lineWidth: 1)
+            )
+            // CSS `0 6pt 20pt -8pt rgba(255,255,255,.4)` — soft downward white glow.
+            .shadow(
+                color: shadowColor(pressed: configuration.isPressed),
+                radius: configuration.isPressed ? 14 : 10,
+                x: 0,
+                y: 6
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.smooth(duration: 0.12), value: configuration.isPressed)
+    }
+
+    @ViewBuilder
+    private func background(pressed: Bool) -> some View {
+        if prominent {
+            LinearGradient(
+                stops: [
+                    .init(color: pressed ? Color(white: 0.94) : .white, location: 0.0),
+                    .init(
+                        color: Color(
+                            red: 233.0 / 255.0,
+                            green: 231.0 / 255.0,
+                            blue: 226.0 / 255.0
+                        ),
+                        location: 1.0
+                    )
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            Color.white.opacity(pressed ? 0.16 : 0.07)
+        }
+    }
+
+    private func strokeColor(pressed: Bool) -> Color {
+        if prominent {
+            return Color.white.opacity(pressed ? 0.85 : 0.6)
+        }
+        return Color.white.opacity(pressed ? 0.22 : 0.10)
+    }
+
+    private func shadowColor(pressed: Bool) -> Color {
+        guard prominent else { return .clear }
+        return Color.white.opacity(pressed ? 0.55 : 0.4)
     }
 }
 

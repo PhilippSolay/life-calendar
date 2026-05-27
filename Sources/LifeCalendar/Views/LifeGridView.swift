@@ -15,6 +15,8 @@ struct LifeGridView: View {
     let dotShape: DotShape
     let iconSize: Double
     let currentYearStyle: CurrentYearStyle
+    let currentYearHex: String
+    let currentYearImage: NSImage?
 
     private let strokeRatio: Double = 0.06
 
@@ -149,21 +151,14 @@ struct LifeGridView: View {
     }
 
     private func filledCellsMask(layout: CellLayout) -> some View {
-        // The current cell is masked from the dot image only when the user has
-        // chosen `.image` for current year. Otherwise the current cell is drawn
-        // explicitly by `currentCell` so the outline / color style shows through.
+        // The dot image only covers lived cells. The current cell is always
+        // rendered explicitly by `currentCell` so the chosen Current Year
+        // style (outline / color / image) takes precedence.
         ZStack {
             Color.clear
             ForEach(0..<progress.totalYears, id: \.self) { index in
                 let cell = progress.cells[index]
-                let include: Bool = {
-                    switch cell.state {
-                    case .lived: return true
-                    case .current: return currentYearStyle == .image
-                    case .remaining: return false
-                    }
-                }()
-                if include {
+                if cell.state == .lived {
                     let center = layout.center(at: index)
                     let dotSize = layout.dotSize(scale: cell.sizeScale)
                     shapeFilled(size: dotSize, color: .white)
@@ -201,33 +196,43 @@ struct LifeGridView: View {
     @ViewBuilder
     private func currentCell(size: Double) -> some View {
         let baseStroke = max(0.5, size * strokeRatio)
+        let cyColor = Color(hex: currentYearHex)
         ZStack {
-            // Inner mark depends on the chosen style.
             switch currentYearStyle {
             case .outline:
-                // Thicker stroke than the remaining cells so the current year
-                // reads as a deliberate accent rather than another empty ring.
-                shapeStroked(size: size, color: foregroundColor, lineWidth: baseStroke * 3.0)
+                // The halo IS the outline — nothing more.
+                EmptyView()
             case .color:
-                // Solid fill in the foreground color. Always drawn — even when
-                // a dot image is set, because the filledCellsMask now excludes
-                // the current cell unless the user explicitly picks .image.
-                shapeFilled(size: size, color: foregroundColor)
+                // Solid fill in the user's current-year colour.
+                shapeFilled(size: size, color: cyColor)
             case .image:
-                // When a dot image is configured, the filledCellsMask renders
-                // it into this cell — nothing extra to draw here. When there's
-                // no image, fall back to a solid colored fill.
-                if dotImage == nil {
-                    shapeFilled(size: size, color: foregroundColor)
+                // Clip the current-year image to the cell shape. Falls back
+                // to the current-year colour when no image has been picked.
+                if let image = currentYearImage {
+                    Image(nsImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: size, height: size)
+                        .clipShape(currentCellClipShape(size: size))
+                } else {
+                    shapeFilled(size: size, color: cyColor)
                 }
             }
 
-            // Halo is always drawn on the current cell.
+            // Halo always drawn — at 1.45× cell size, 60% of foreground.
             shapeStroked(
                 size: size * 1.45,
                 color: foregroundColor.opacity(0.6),
                 lineWidth: baseStroke * 1.2
             )
+        }
+    }
+
+    private func currentCellClipShape(size: Double) -> AnyShape {
+        switch dotShape {
+        case .circle:        return AnyShape(Circle())
+        case .roundedSquare: return AnyShape(RoundedRectangle(cornerRadius: size * 0.25, style: .continuous))
+        case .square:        return AnyShape(Rectangle())
         }
     }
 }

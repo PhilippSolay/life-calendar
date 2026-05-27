@@ -52,6 +52,8 @@ final class PresetStore: ObservableObject {
             dotShape: settings.dotShape,
             iconSize: settings.iconSize,
             currentYearStyle: settings.currentYearStyle,
+            currentYearHex: settings.currentYearHex,
+            currentYearImagePath: settings.currentYearImagePath,
             gridOpacity: settings.gridOpacity
         )
     }
@@ -74,6 +76,8 @@ final class PresetStore: ObservableObject {
         settings.dotShape = preset.dotShape
         settings.iconSize = preset.iconSize
         settings.currentYearStyle = preset.currentYearStyle
+        settings.currentYearHex = preset.currentYearHex
+        settings.currentYearImagePath = preset.currentYearImagePath
         settings.gridOpacity = preset.gridOpacity
     }
 

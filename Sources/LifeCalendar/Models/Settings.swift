@@ -116,6 +116,8 @@ enum SettingsKey {
     static let dotShape = "dotShape"
     static let iconSize = "iconSize"
     static let currentYearStyle = "currentYearStyle"
+    static let currentYearHex = "currentYearHex"
+    static let currentYearImagePath = "currentYearImagePath"
 
     // Legacy keys removed from the model but used during migration.
     static let legacyHighlightCurrentYear = "highlightCurrentYear"
@@ -211,6 +213,14 @@ final class Settings: ObservableObject {
         didSet { defaults.set(currentYearStyle.rawValue, forKey: SettingsKey.currentYearStyle) }
     }
 
+    @Published var currentYearHex: String {
+        didSet { defaults.set(currentYearHex, forKey: SettingsKey.currentYearHex) }
+    }
+
+    @Published var currentYearImagePath: String {
+        didSet { defaults.set(currentYearImagePath, forKey: SettingsKey.currentYearImagePath) }
+    }
+
     init() {
         // Migrate legacy `highlightCurrentYear` BEFORE registering defaults so that
         // the legacy key's value (if any) drives the seeded currentYearStyle.
@@ -235,7 +245,9 @@ final class Settings: ObservableObject {
             SettingsKey.sidePadding: 0.05,
             SettingsKey.dotShape: DotShape.circle.rawValue,
             SettingsKey.iconSize: 0.64,
-            SettingsKey.currentYearStyle: migratedCurrentYearStyle.rawValue
+            SettingsKey.currentYearStyle: migratedCurrentYearStyle.rawValue,
+            SettingsKey.currentYearHex: "#FFFFFF",
+            SettingsKey.currentYearImagePath: ""
         ])
 
         let storedBirth = defaults.double(forKey: SettingsKey.birthdate)
@@ -271,6 +283,8 @@ final class Settings: ObservableObject {
         let currentYearRaw = defaults.string(forKey: SettingsKey.currentYearStyle)
             ?? migratedCurrentYearStyle.rawValue
         self.currentYearStyle = CurrentYearStyle(rawValue: currentYearRaw) ?? migratedCurrentYearStyle
+        self.currentYearHex = defaults.string(forKey: SettingsKey.currentYearHex) ?? "#FFFFFF"
+        self.currentYearImagePath = defaults.string(forKey: SettingsKey.currentYearImagePath) ?? ""
     }
 
     /// Returns the currentYearStyle dictated by any legacy `highlightCurrentYear` value.
@@ -287,6 +301,7 @@ final class Settings: ObservableObject {
 
     var backgroundImage: NSImage? { loadImage(at: backgroundImagePath) }
     var dotImage: NSImage? { loadImage(at: dotImagePath) }
+    var currentYearImage: NSImage? { loadImage(at: currentYearImagePath) }
 
     @discardableResult
     func importBackgroundImage(from source: URL) -> Bool {
@@ -304,11 +319,26 @@ final class Settings: ObservableObject {
         return true
     }
 
+    @discardableResult
+    func importCurrentYearImage(from source: URL) -> Bool {
+        guard let path = copyImageToSupport(from: source, prefix: "currentyear") else { return false }
+        clearCurrentYearImage()
+        currentYearImagePath = path
+        return true
+    }
+
     func clearBackgroundImage() {
         if !backgroundImagePath.isEmpty {
             try? FileManager.default.removeItem(atPath: backgroundImagePath)
         }
         backgroundImagePath = ""
+    }
+
+    func clearCurrentYearImage() {
+        if !currentYearImagePath.isEmpty {
+            try? FileManager.default.removeItem(atPath: currentYearImagePath)
+        }
+        currentYearImagePath = ""
     }
 
     func clearDotImage() {

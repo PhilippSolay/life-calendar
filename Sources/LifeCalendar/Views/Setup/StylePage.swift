@@ -130,6 +130,31 @@ struct StylePage: View {
                 value: settings.currentYearStyle,
                 onChange: { settings.currentYearStyle = $0 }
             )
+
+            // Outline mode needs no extra control — the halo IS the outline.
+            switch settings.currentYearStyle {
+            case .outline:
+                EmptyView()
+            case .color:
+                ColorField(label: "Color", hex: $settings.currentYearHex)
+            case .image:
+                currentYearImageControls
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var currentYearImageControls: some View {
+        if let image = settings.currentYearImage {
+            FilenameChip(
+                name: URL(fileURLWithPath: settings.currentYearImagePath).lastPathComponent,
+                thumb: image,
+                onRemove: { settings.clearCurrentYearImage() }
+            )
+        } else {
+            GlassButton(size: .sm, action: { pickImage(into: .currentYear) }) {
+                Text("Select image…")
+            }
         }
     }
 
@@ -156,7 +181,7 @@ struct StylePage: View {
 
     // MARK: - NSOpenPanel
 
-    private enum ImageSlot { case background, dots }
+    private enum ImageSlot { case background, dots, currentYear }
 
     private func pickImage(into slot: ImageSlot) {
         let panel = NSOpenPanel()
@@ -166,8 +191,9 @@ struct StylePage: View {
         panel.allowedContentTypes = [UTType.image]
         guard panel.runModal() == .OK, let url = panel.url else { return }
         switch slot {
-        case .background: settings.importBackgroundImage(from: url)
-        case .dots: settings.importDotImage(from: url)
+        case .background:  settings.importBackgroundImage(from: url)
+        case .dots:        settings.importDotImage(from: url)
+        case .currentYear: settings.importCurrentYearImage(from: url)
         }
     }
 }

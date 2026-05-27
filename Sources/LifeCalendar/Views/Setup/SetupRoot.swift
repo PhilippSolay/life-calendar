@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Tabs in the floating setup panel.
 enum SetupTab: String, CaseIterable, Identifiable {
-    case lifespan, style, layout, presets, save
+    case presets, lifespan, style, layout, save
 
     var id: String { rawValue }
 

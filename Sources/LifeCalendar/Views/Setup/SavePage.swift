@@ -13,8 +13,6 @@ struct SavePage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionLabel("SAVE")
-
             SaveAction(
                 label: "Save Wallpaper",
                 sub: "Export a PNG to your downloads.",

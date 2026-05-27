@@ -19,7 +19,9 @@ struct WallpaperRenderer {
             sidePadding: settings.sidePadding,
             dotShape: settings.dotShape,
             iconSize: settings.iconSize,
-            currentYearStyle: settings.currentYearStyle
+            currentYearStyle: settings.currentYearStyle,
+            currentYearHex: settings.currentYearHex,
+            currentYearImage: settings.currentYearImage
         )
         .frame(width: size.width, height: size.height)
 

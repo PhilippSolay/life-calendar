@@ -30,6 +30,8 @@ struct Preset: Identifiable, Codable, Equatable {
     var dotShape: DotShape
     var iconSize: Double
     var currentYearStyle: CurrentYearStyle
+    var currentYearHex: String
+    var currentYearImagePath: String
     var gridOpacity: Double
 
     init(
@@ -53,6 +55,8 @@ struct Preset: Identifiable, Codable, Equatable {
         dotShape: DotShape,
         iconSize: Double,
         currentYearStyle: CurrentYearStyle,
+        currentYearHex: String,
+        currentYearImagePath: String,
         gridOpacity: Double
     ) {
         self.id = id
@@ -75,6 +79,46 @@ struct Preset: Identifiable, Codable, Equatable {
         self.dotShape = dotShape
         self.iconSize = iconSize
         self.currentYearStyle = currentYearStyle
+        self.currentYearHex = currentYearHex
+        self.currentYearImagePath = currentYearImagePath
         self.gridOpacity = gridOpacity
+    }
+
+    // Defaults for presets saved before these fields existed.
+    enum CodingKeys: String, CodingKey {
+        case id, name, createdAt, totalYears, columns, fadeInYears, fadeOutYears
+        case minScale, minOpacity, gridScale, gridAnchor, sidePadding
+        case backgroundHex, foregroundHex, backgroundImagePath, dotImagePath
+        case backgroundImageMode, dotShape, iconSize, currentYearStyle
+        case currentYearHex, currentYearImagePath, gridOpacity
+    }
+
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decode(UUID.self, forKey: .id)
+        self.name = try c.decode(String.self, forKey: .name)
+        self.createdAt = try c.decode(Date.self, forKey: .createdAt)
+        self.totalYears = try c.decode(Int.self, forKey: .totalYears)
+        self.columns = try c.decode(Int.self, forKey: .columns)
+        self.fadeInYears = try c.decode(Int.self, forKey: .fadeInYears)
+        self.fadeOutYears = try c.decode(Int.self, forKey: .fadeOutYears)
+        self.minScale = try c.decode(Double.self, forKey: .minScale)
+        self.minOpacity = try c.decode(Double.self, forKey: .minOpacity)
+        self.gridScale = try c.decode(Double.self, forKey: .gridScale)
+        self.gridAnchor = try c.decode(GridAnchor.self, forKey: .gridAnchor)
+        self.sidePadding = try c.decode(Double.self, forKey: .sidePadding)
+        self.backgroundHex = try c.decode(String.self, forKey: .backgroundHex)
+        self.foregroundHex = try c.decode(String.self, forKey: .foregroundHex)
+        self.backgroundImagePath = try c.decode(String.self, forKey: .backgroundImagePath)
+        self.dotImagePath = try c.decode(String.self, forKey: .dotImagePath)
+        self.backgroundImageMode = try c.decode(BackgroundImageMode.self, forKey: .backgroundImageMode)
+        self.dotShape = try c.decode(DotShape.self, forKey: .dotShape)
+        self.iconSize = try c.decode(Double.self, forKey: .iconSize)
+        self.currentYearStyle = try c.decode(CurrentYearStyle.self, forKey: .currentYearStyle)
+        self.currentYearHex = try c.decodeIfPresent(String.self, forKey: .currentYearHex)
+            ?? "#FFFFFF"
+        self.currentYearImagePath = try c.decodeIfPresent(String.self, forKey: .currentYearImagePath)
+            ?? ""
+        self.gridOpacity = try c.decode(Double.self, forKey: .gridOpacity)
     }
 }

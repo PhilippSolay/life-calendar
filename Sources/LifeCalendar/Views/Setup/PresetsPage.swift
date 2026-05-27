@@ -124,7 +124,9 @@ private struct PresetCard: View {
             sidePadding: preset.sidePadding,
             dotShape: preset.dotShape,
             iconSize: preset.iconSize,
-            currentYearStyle: preset.currentYearStyle
+            currentYearStyle: preset.currentYearStyle,
+            currentYearHex: preset.currentYearHex,
+            currentYearImage: loadImage(at: preset.currentYearImagePath)
         )
     }
 
