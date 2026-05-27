@@ -5,7 +5,6 @@ struct LifeGridView: View {
     let progress: LifeProgress
     let backgroundColor: Color
     let foregroundColor: Color
-    let highlightCurrentYear: Bool
     let backgroundImage: NSImage?
     let gridScale: Double
     let backgroundImageMode: BackgroundImageMode
@@ -13,9 +12,16 @@ struct LifeGridView: View {
     let gridOpacity: Double
     let gridAnchor: GridAnchor
     let sidePadding: Double
+    let dotShape: DotShape
+    let iconSize: Double
+    let currentYearStyle: CurrentYearStyle
 
-    private let cellPadding: Double = 0.18
     private let strokeRatio: Double = 0.06
+
+    private var cellPadding: Double {
+        let clamped = min(max(iconSize, 0.0), 1.0)
+        return (1.0 - clamped) / 2.0
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -80,6 +86,42 @@ struct LifeGridView: View {
             .ignoresSafeArea()
     }
 
+    @ViewBuilder
+    private func shapeFilled(size: Double, color: Color) -> some View {
+        switch dotShape {
+        case .circle:
+            Circle()
+                .fill(color)
+                .frame(width: size, height: size)
+        case .roundedSquare:
+            RoundedRectangle(cornerRadius: size * 0.25, style: .continuous)
+                .fill(color)
+                .frame(width: size, height: size)
+        case .square:
+            Rectangle()
+                .fill(color)
+                .frame(width: size, height: size)
+        }
+    }
+
+    @ViewBuilder
+    private func shapeStroked(size: Double, color: Color, lineWidth: Double) -> some View {
+        switch dotShape {
+        case .circle:
+            Circle()
+                .stroke(color, lineWidth: lineWidth)
+                .frame(width: size, height: size)
+        case .roundedSquare:
+            RoundedRectangle(cornerRadius: size * 0.25, style: .continuous)
+                .stroke(color, lineWidth: lineWidth)
+                .frame(width: size, height: size)
+        case .square:
+            Rectangle()
+                .stroke(color, lineWidth: lineWidth)
+                .frame(width: size, height: size)
+        }
+    }
+
     private func ringMask(filled: Bool, layout: CellLayout) -> some View {
         ZStack {
             Color.clear
@@ -90,13 +132,13 @@ struct LifeGridView: View {
                     let dotSize = layout.dotSize(scale: cell.sizeScale)
                     Group {
                         if filled {
-                            Circle()
-                                .fill(Color.white)
-                                .frame(width: dotSize, height: dotSize)
+                            shapeFilled(size: dotSize, color: .white)
                         } else {
-                            Circle()
-                                .stroke(Color.white, lineWidth: layout.strokeWidth(dotSize: dotSize))
-                                .frame(width: dotSize, height: dotSize)
+                            shapeStroked(
+                                size: dotSize,
+                                color: .white,
+                                lineWidth: layout.strokeWidth(dotSize: dotSize)
+                            )
                         }
                     }
                     .position(x: center.x, y: center.y)
@@ -114,9 +156,7 @@ struct LifeGridView: View {
                 if cell.state == .lived || cell.state == .current {
                     let center = layout.center(at: index)
                     let dotSize = layout.dotSize(scale: cell.sizeScale)
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: dotSize, height: dotSize)
+                    shapeFilled(size: dotSize, color: .white)
                         .position(x: center.x, y: center.y)
                         .opacity(cell.opacity)
                 }
@@ -129,33 +169,55 @@ struct LifeGridView: View {
         switch cell.state {
         case .lived:
             if dotImage == nil {
-                Circle()
-                    .fill(foregroundColor)
-                    .frame(width: size, height: size)
+                shapeFilled(size: size, color: foregroundColor)
             } else {
                 EmptyView()
             }
         case .current:
-            ZStack {
-                if dotImage == nil {
-                    Circle()
-                        .fill(foregroundColor)
-                        .frame(width: size, height: size)
-                }
-                if highlightCurrentYear {
-                    Circle()
-                        .stroke(foregroundColor.opacity(0.6), lineWidth: size * strokeRatio * 1.2)
-                        .frame(width: size * 1.45, height: size * 1.45)
-                }
-            }
+            currentCell(size: size)
         case .remaining:
             if backgroundImage != nil && backgroundImageMode == .ringOutlines {
                 EmptyView()
             } else {
-                Circle()
-                    .stroke(foregroundColor, lineWidth: max(0.5, size * strokeRatio))
-                    .frame(width: size, height: size)
+                shapeStroked(
+                    size: size,
+                    color: foregroundColor,
+                    lineWidth: max(0.5, size * strokeRatio)
+                )
             }
+        }
+    }
+
+    @ViewBuilder
+    private func currentCell(size: Double) -> some View {
+        let baseStroke = max(0.5, size * strokeRatio)
+        ZStack {
+            // Inner mark depends on the chosen style.
+            switch currentYearStyle {
+            case .outline:
+                // Just a slightly thicker stroke than the remaining cells, no fill.
+                shapeStroked(size: size, color: foregroundColor, lineWidth: baseStroke * 2.0)
+            case .color:
+                if dotImage == nil {
+                    shapeFilled(size: size, color: foregroundColor)
+                }
+            case .image:
+                if dotImage != nil {
+                    // The fullScreenImage masked by filledCellsMask renders the image
+                    // into this cell — nothing extra to draw here.
+                    EmptyView()
+                } else {
+                    // Fallback when no image is configured: behave like .color.
+                    shapeFilled(size: size, color: foregroundColor)
+                }
+            }
+
+            // Halo is always drawn on the current cell.
+            shapeStroked(
+                size: size * 1.45,
+                color: foregroundColor.opacity(0.6),
+                lineWidth: baseStroke * 1.2
+            )
         }
     }
 }

@@ -29,6 +29,37 @@ enum GridAnchor: String, CaseIterable, Identifiable {
     }
 
     var isCentered: Bool { self == .center }
+
+    /// 0...8 index into the 3×3 anchor grid (row-major: top-leading is 0,
+    /// bottom-trailing is 8). Used by the inspector swatches.
+    var index: Int {
+        switch self {
+        case .topLeading: return 0
+        case .top: return 1
+        case .topTrailing: return 2
+        case .leading: return 3
+        case .center: return 4
+        case .trailing: return 5
+        case .bottomLeading: return 6
+        case .bottom: return 7
+        case .bottomTrailing: return 8
+        }
+    }
+
+    static func from(index: Int) -> GridAnchor {
+        switch index {
+        case 0: return .topLeading
+        case 1: return .top
+        case 2: return .topTrailing
+        case 3: return .leading
+        case 4: return .center
+        case 5: return .trailing
+        case 6: return .bottomLeading
+        case 7: return .bottom
+        case 8: return .bottomTrailing
+        default: return .center
+        }
+    }
 }
 
 enum BackgroundImageMode: String, CaseIterable, Identifiable {
@@ -47,6 +78,22 @@ enum BackgroundImageMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum DotShape: String, CaseIterable, Identifiable {
+    case circle
+    case roundedSquare
+    case square
+
+    var id: String { rawValue }
+}
+
+enum CurrentYearStyle: String, CaseIterable, Identifiable {
+    case outline
+    case color
+    case image
+
+    var id: String { rawValue }
+}
+
 enum SettingsKey {
     static let birthdate = "birthdate"
     static let hasOnboarded = "hasOnboarded"
@@ -58,7 +105,6 @@ enum SettingsKey {
     static let fadeOutYears = "fadeOutYears"
     static let minScale = "minScale"
     static let minOpacity = "minOpacity"
-    static let highlightCurrentYear = "highlightCurrentYear"
     static let backgroundImagePath = "backgroundImagePath"
     static let gridScale = "gridScale"
     static let backgroundImageMode = "backgroundImageMode"
@@ -67,6 +113,12 @@ enum SettingsKey {
     static let originalWallpaperPath = "originalWallpaperPath"
     static let gridAnchor = "gridAnchor"
     static let sidePadding = "sidePadding"
+    static let dotShape = "dotShape"
+    static let iconSize = "iconSize"
+    static let currentYearStyle = "currentYearStyle"
+
+    // Legacy keys removed from the model but used during migration.
+    static let legacyHighlightCurrentYear = "highlightCurrentYear"
 }
 
 @MainActor
@@ -115,10 +167,6 @@ final class Settings: ObservableObject {
         didSet { defaults.set(minOpacity, forKey: SettingsKey.minOpacity) }
     }
 
-    @Published var highlightCurrentYear: Bool {
-        didSet { defaults.set(highlightCurrentYear, forKey: SettingsKey.highlightCurrentYear) }
-    }
-
     @Published var backgroundImagePath: String {
         didSet { defaults.set(backgroundImagePath, forKey: SettingsKey.backgroundImagePath) }
     }
@@ -151,17 +199,32 @@ final class Settings: ObservableObject {
         didSet { defaults.set(sidePadding, forKey: SettingsKey.sidePadding) }
     }
 
+    @Published var dotShape: DotShape {
+        didSet { defaults.set(dotShape.rawValue, forKey: SettingsKey.dotShape) }
+    }
+
+    @Published var iconSize: Double {
+        didSet { defaults.set(iconSize, forKey: SettingsKey.iconSize) }
+    }
+
+    @Published var currentYearStyle: CurrentYearStyle {
+        didSet { defaults.set(currentYearStyle.rawValue, forKey: SettingsKey.currentYearStyle) }
+    }
+
     init() {
+        // Migrate legacy `highlightCurrentYear` BEFORE registering defaults so that
+        // the legacy key's value (if any) drives the seeded currentYearStyle.
+        let migratedCurrentYearStyle = Settings.migrateHighlightCurrentYear(defaults: defaults)
+
         defaults.register(defaults: [
             SettingsKey.backgroundHex: "#000000",
             SettingsKey.foregroundHex: "#FFFFFF",
-            SettingsKey.totalYears: 100,
+            SettingsKey.totalYears: 110,
             SettingsKey.columns: 10,
             SettingsKey.fadeInYears: 10,
             SettingsKey.fadeOutYears: 10,
             SettingsKey.minScale: 0.08,
             SettingsKey.minOpacity: 0.12,
-            SettingsKey.highlightCurrentYear: true,
             SettingsKey.backgroundImagePath: "",
             SettingsKey.gridScale: 1.0,
             SettingsKey.backgroundImageMode: BackgroundImageMode.fullScreen.rawValue,
@@ -169,7 +232,10 @@ final class Settings: ObservableObject {
             SettingsKey.gridOpacity: 1.0,
             SettingsKey.originalWallpaperPath: "",
             SettingsKey.gridAnchor: GridAnchor.center.rawValue,
-            SettingsKey.sidePadding: 0.05
+            SettingsKey.sidePadding: 0.05,
+            SettingsKey.dotShape: DotShape.circle.rawValue,
+            SettingsKey.iconSize: 0.64,
+            SettingsKey.currentYearStyle: migratedCurrentYearStyle.rawValue
         ])
 
         let storedBirth = defaults.double(forKey: SettingsKey.birthdate)
@@ -185,7 +251,6 @@ final class Settings: ObservableObject {
         self.fadeOutYears = defaults.integer(forKey: SettingsKey.fadeOutYears)
         self.minScale = defaults.double(forKey: SettingsKey.minScale)
         self.minOpacity = defaults.double(forKey: SettingsKey.minOpacity)
-        self.highlightCurrentYear = defaults.bool(forKey: SettingsKey.highlightCurrentYear)
         self.backgroundImagePath = defaults.string(forKey: SettingsKey.backgroundImagePath) ?? ""
         let storedScale = defaults.double(forKey: SettingsKey.gridScale)
         self.gridScale = storedScale > 0 ? storedScale : 1.0
@@ -199,6 +264,25 @@ final class Settings: ObservableObject {
         let anchorRaw = defaults.string(forKey: SettingsKey.gridAnchor) ?? GridAnchor.center.rawValue
         self.gridAnchor = GridAnchor(rawValue: anchorRaw) ?? .center
         self.sidePadding = defaults.double(forKey: SettingsKey.sidePadding)
+        let dotShapeRaw = defaults.string(forKey: SettingsKey.dotShape) ?? DotShape.circle.rawValue
+        self.dotShape = DotShape(rawValue: dotShapeRaw) ?? .circle
+        let storedIconSize = defaults.double(forKey: SettingsKey.iconSize)
+        self.iconSize = storedIconSize > 0 ? min(max(storedIconSize, 0.0), 1.0) : 0.64
+        let currentYearRaw = defaults.string(forKey: SettingsKey.currentYearStyle)
+            ?? migratedCurrentYearStyle.rawValue
+        self.currentYearStyle = CurrentYearStyle(rawValue: currentYearRaw) ?? migratedCurrentYearStyle
+    }
+
+    /// Returns the currentYearStyle dictated by any legacy `highlightCurrentYear` value.
+    /// If the legacy key is present, it's mapped (true → .color, false → .outline) and
+    /// then deleted. Otherwise the default (.color) is returned.
+    private static func migrateHighlightCurrentYear(defaults: UserDefaults) -> CurrentYearStyle {
+        guard defaults.object(forKey: SettingsKey.legacyHighlightCurrentYear) != nil else {
+            return .color
+        }
+        let legacy = defaults.bool(forKey: SettingsKey.legacyHighlightCurrentYear)
+        defaults.removeObject(forKey: SettingsKey.legacyHighlightCurrentYear)
+        return legacy ? .color : .outline
     }
 
     var backgroundImage: NSImage? { loadImage(at: backgroundImagePath) }

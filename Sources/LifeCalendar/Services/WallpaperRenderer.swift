@@ -10,14 +10,16 @@ struct WallpaperRenderer {
             progress: settings.progress(),
             backgroundColor: Color(hex: settings.backgroundHex),
             foregroundColor: Color(hex: settings.foregroundHex),
-            highlightCurrentYear: settings.highlightCurrentYear,
             backgroundImage: settings.backgroundImage,
             gridScale: settings.gridScale,
             backgroundImageMode: settings.backgroundImageMode,
             dotImage: settings.dotImage,
             gridOpacity: settings.gridOpacity,
             gridAnchor: settings.gridAnchor,
-            sidePadding: settings.sidePadding
+            sidePadding: settings.sidePadding,
+            dotShape: settings.dotShape,
+            iconSize: settings.iconSize,
+            currentYearStyle: settings.currentYearStyle
         )
         .frame(width: size.width, height: size.height)
 
