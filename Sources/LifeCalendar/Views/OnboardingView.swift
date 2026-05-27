@@ -13,16 +13,6 @@ struct OnboardingView: View {
         case birthdate, lifespan, layout, look, save
         var id: Int { rawValue }
 
-        var icon: String {
-            switch self {
-            case .birthdate: return "calendar"
-            case .lifespan: return "circle.grid.3x3"
-            case .layout: return "rectangle.3.group"
-            case .look: return "paintbrush"
-            case .save: return "checkmark.seal"
-            }
-        }
-
         var title: String {
             switch self {
             case .birthdate: return "When were you born?"
@@ -110,16 +100,9 @@ struct OnboardingView: View {
     }
 
     private var header: some View {
-        VStack(spacing: 14) {
-            Image(systemName: step.icon)
-                .font(.system(size: 26, weight: .light))
-                .foregroundStyle(.white)
-                .frame(width: 76, height: 76)
-                .glassCircle()
-                .padding(.bottom, 6)
-
+        VStack(spacing: 10) {
             Text(step.title)
-                .font(.system(size: 34, weight: .light))
+                .font(.system(size: 36, weight: .light))
                 .tracking(-0.3)
 
             Text(step.subtitle)
