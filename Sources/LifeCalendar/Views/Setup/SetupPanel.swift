@@ -4,8 +4,12 @@ import SwiftUI
 /// 360 pt wide, vertically centered, draggable by the top grip.
 struct SetupPanel: View {
     @Binding var selectedTab: SetupTab
+
+    // Single source of truth for the panel position. Persists across drags.
     @State private var dragOffset: CGSize = .zero
-    @GestureState private var gestureDrag: CGSize = .zero
+    // Captured at the start of each drag so onChanged can compute the new
+    // absolute offset without referencing a value that's already changing.
+    @State private var dragStart: CGSize? = nil
 
     private let panelWidth: CGFloat = 360
 
@@ -13,15 +17,17 @@ struct SetupPanel: View {
         VStack(alignment: .leading, spacing: 18) {
             PanelGrip()
                 .gesture(
-                    DragGesture()
-                        .updating($gestureDrag) { value, state, _ in
-                            state = value.translation
-                        }
-                        .onEnded { value in
+                    DragGesture(minimumDistance: 1)
+                        .onChanged { value in
+                            if dragStart == nil { dragStart = dragOffset }
+                            let base = dragStart ?? .zero
                             dragOffset = CGSize(
-                                width: dragOffset.width + value.translation.width,
-                                height: dragOffset.height + value.translation.height
+                                width: base.width + value.translation.width,
+                                height: base.height + value.translation.height
                             )
+                        }
+                        .onEnded { _ in
+                            dragStart = nil
                         }
                 )
 
@@ -40,10 +46,7 @@ struct SetupPanel: View {
         )
         .shadow(color: .black.opacity(0.7), radius: 40, x: 0, y: 20)
         .shadow(color: .black.opacity(0.5), radius: 18, x: 0, y: 8)
-        .offset(
-            x: dragOffset.width + gestureDrag.width,
-            y: dragOffset.height + gestureDrag.height
-        )
+        .offset(dragOffset)
     }
 
     @ViewBuilder
