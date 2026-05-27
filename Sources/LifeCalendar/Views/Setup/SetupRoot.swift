@@ -30,9 +30,11 @@ enum SetupTab: String, CaseIterable, Identifiable {
 /// top-left, and the floating settings panel anchored to the right.
 struct SetupRoot: View {
     @State private var selectedTab: SetupTab
+    let onBirthdayRequested: (() -> Void)?
 
-    init(initialTab: SetupTab = .lifespan) {
+    init(initialTab: SetupTab = .lifespan, onBirthdayRequested: (() -> Void)? = nil) {
         self._selectedTab = State(initialValue: initialTab)
+        self.onBirthdayRequested = onBirthdayRequested
     }
 
     var body: some View {
@@ -45,8 +47,11 @@ struct SetupRoot: View {
 
             HStack {
                 Spacer()
-                SetupPanel(selectedTab: $selectedTab)
-                    .padding(.trailing, 36)
+                SetupPanel(
+                    selectedTab: $selectedTab,
+                    onBirthdayRequested: onBirthdayRequested
+                )
+                .padding(.trailing, 36)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

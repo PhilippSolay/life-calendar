@@ -5,12 +5,30 @@ import SwiftUI
 /// Selected tab gets a white-10% background and full-strength text.
 struct SetupTabBar: View {
     @Binding var selectedTab: SetupTab
+    let onBirthdayRequested: (() -> Void)?
+
+    init(selectedTab: Binding<SetupTab>, onBirthdayRequested: (() -> Void)? = nil) {
+        self._selectedTab = selectedTab
+        self.onBirthdayRequested = onBirthdayRequested
+    }
 
     private let outerPadding: CGFloat = 4
     private let buttonHeight: CGFloat = 28
 
     var body: some View {
         HStack(spacing: 0) {
+            if let onBirthdayRequested {
+                Button(action: onBirthdayRequested) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(Color.white.opacity(0.65))
+                        .frame(width: 36, height: buttonHeight)
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .help("Edit birthdate")
+            }
+
             ForEach(SetupTab.allCases) { tab in
                 tabButton(for: tab)
             }

@@ -54,8 +54,11 @@ struct RootView: View {
                 BirthdayRoot(onFinish: handleBirthdayFinish)
                     .transition(.opacity)
             case .setup(let tab):
-                SetupRoot(initialTab: tab)
-                    .transition(.opacity)
+                SetupRoot(
+                    initialTab: tab,
+                    onBirthdayRequested: { goBackToBirthday() }
+                )
+                .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -69,6 +72,15 @@ struct RootView: View {
         WallpaperApply.apply(using: settings)
         withAnimation(.smooth(duration: 0.3)) {
             phase = .setup(tab: .lifespan)
+        }
+    }
+
+    /// Re-enters the Birthday flow from any setup tab. The user lands on the
+    /// Year screen of a fresh BirthdayRoot. On Continue they come back to
+    /// Setup with their new birthdate committed.
+    private func goBackToBirthday() {
+        withAnimation(.smooth(duration: 0.3)) {
+            phase = .birthday
         }
     }
 }

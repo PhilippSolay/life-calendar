@@ -4,6 +4,7 @@ import SwiftUI
 /// 360 pt wide, vertically centered, draggable by the top grip.
 struct SetupPanel: View {
     @Binding var selectedTab: SetupTab
+    let onBirthdayRequested: (() -> Void)?
 
     // Single source of truth for the panel position. Persists across drags.
     @State private var dragOffset: CGSize = .zero
@@ -12,6 +13,11 @@ struct SetupPanel: View {
     @State private var dragStart: CGSize? = nil
 
     private let panelWidth: CGFloat = 360
+
+    init(selectedTab: Binding<SetupTab>, onBirthdayRequested: (() -> Void)? = nil) {
+        self._selectedTab = selectedTab
+        self.onBirthdayRequested = onBirthdayRequested
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -31,7 +37,7 @@ struct SetupPanel: View {
                         }
                 )
 
-            SetupTabBar(selectedTab: $selectedTab)
+            SetupTabBar(selectedTab: $selectedTab, onBirthdayRequested: onBirthdayRequested)
 
             page
                 .padding(.top, 4)
