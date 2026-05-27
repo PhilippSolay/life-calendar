@@ -9,6 +9,8 @@ struct LifeGridView: View {
     let backgroundImage: NSImage?
     let gridScale: Double
     let backgroundImageMode: BackgroundImageMode
+    let dotImage: NSImage?
+    let gridOpacity: Double
 
     private let cellPadding: Double = 0.18
     private let strokeRatio: Double = 0.06
@@ -27,28 +29,40 @@ struct LifeGridView: View {
             ZStack {
                 backgroundColor.ignoresSafeArea()
 
-                if let image = backgroundImage {
-                    switch backgroundImageMode {
-                    case .fullScreen:
-                        fullScreenImage(image, in: geo.size)
-                    case .insideRings:
-                        fullScreenImage(image, in: geo.size)
-                            .mask(ringMask(filled: true, layout: layout))
-                    case .ringOutlines:
-                        fullScreenImage(image, in: geo.size)
-                            .mask(ringMask(filled: false, layout: layout))
+                if let image = backgroundImage, backgroundImageMode == .fullScreen {
+                    fullScreenImage(image, in: geo.size)
+                }
+
+                ZStack {
+                    if let image = backgroundImage {
+                        switch backgroundImageMode {
+                        case .fullScreen:
+                            EmptyView()
+                        case .insideRings:
+                            fullScreenImage(image, in: geo.size)
+                                .mask(ringMask(filled: true, layout: layout))
+                        case .ringOutlines:
+                            fullScreenImage(image, in: geo.size)
+                                .mask(ringMask(filled: false, layout: layout))
+                        }
+                    }
+
+                    if let dot = dotImage {
+                        fullScreenImage(dot, in: geo.size)
+                            .mask(filledCellsMask(layout: layout))
+                    }
+
+                    ForEach(0..<progress.totalYears, id: \.self) { index in
+                        let cell = progress.cells[index]
+                        let center = layout.center(at: index)
+                        let dotSize = layout.dotSize(scale: cell.sizeScale)
+
+                        cellShape(for: cell, size: dotSize)
+                            .position(x: center.x, y: center.y)
+                            .opacity(cell.opacity)
                     }
                 }
-
-                ForEach(0..<progress.totalYears, id: \.self) { index in
-                    let cell = progress.cells[index]
-                    let center = layout.center(at: index)
-                    let dotSize = layout.dotSize(scale: cell.sizeScale)
-
-                    cellShape(for: cell, size: dotSize)
-                        .position(x: center.x, y: center.y)
-                        .opacity(cell.opacity)
-                }
+                .opacity(gridOpacity)
             }
         }
     }
@@ -88,18 +102,42 @@ struct LifeGridView: View {
         }
     }
 
+    private func filledCellsMask(layout: CellLayout) -> some View {
+        ZStack {
+            Color.clear
+            ForEach(0..<progress.totalYears, id: \.self) { index in
+                let cell = progress.cells[index]
+                if cell.state == .lived || cell.state == .current {
+                    let center = layout.center(at: index)
+                    let dotSize = layout.dotSize(scale: cell.sizeScale)
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: dotSize, height: dotSize)
+                        .position(x: center.x, y: center.y)
+                        .opacity(cell.opacity)
+                }
+            }
+        }
+    }
+
     @ViewBuilder
     private func cellShape(for cell: LifeCell, size: Double) -> some View {
         switch cell.state {
         case .lived:
-            Circle()
-                .fill(foregroundColor)
-                .frame(width: size, height: size)
-        case .current:
-            ZStack {
+            if dotImage == nil {
                 Circle()
                     .fill(foregroundColor)
                     .frame(width: size, height: size)
+            } else {
+                EmptyView()
+            }
+        case .current:
+            ZStack {
+                if dotImage == nil {
+                    Circle()
+                        .fill(foregroundColor)
+                        .frame(width: size, height: size)
+                }
                 if highlightCurrentYear {
                     Circle()
                         .stroke(foregroundColor.opacity(0.6), lineWidth: size * strokeRatio * 1.2)

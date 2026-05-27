@@ -23,9 +23,11 @@ APP_BUNDLE="build/${APP_NAME}.app"
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
 mkdir -p "$APP_BUNDLE/Contents/Resources"
+mkdir -p "$APP_BUNDLE/Contents/Library/LaunchAgents"
 
 cp "$BIN_PATH/$EXEC_NAME" "$APP_BUNDLE/Contents/MacOS/$EXEC_NAME"
 cp "Resources/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
+cp "Resources/com.philippsolay.LifeCalendar.plist" "$APP_BUNDLE/Contents/Library/LaunchAgents/com.philippsolay.LifeCalendar.plist"
 
 # Ad-hoc sign so macOS will let us run the unbundled app locally
 codesign --force --deep --sign - "$APP_BUNDLE" >/dev/null

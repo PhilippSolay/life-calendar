@@ -13,7 +13,9 @@ struct WallpaperRenderer {
             highlightCurrentYear: settings.highlightCurrentYear,
             backgroundImage: settings.backgroundImage,
             gridScale: settings.gridScale,
-            backgroundImageMode: settings.backgroundImageMode
+            backgroundImageMode: settings.backgroundImageMode,
+            dotImage: settings.dotImage,
+            gridOpacity: settings.gridOpacity
         )
         .frame(width: size.width, height: size.height)
 

@@ -33,6 +33,8 @@ enum SettingsKey {
     static let backgroundImagePath = "backgroundImagePath"
     static let gridScale = "gridScale"
     static let backgroundImageMode = "backgroundImageMode"
+    static let dotImagePath = "dotImagePath"
+    static let gridOpacity = "gridOpacity"
 }
 
 @MainActor
@@ -97,6 +99,14 @@ final class Settings: ObservableObject {
         didSet { defaults.set(backgroundImageMode.rawValue, forKey: SettingsKey.backgroundImageMode) }
     }
 
+    @Published var dotImagePath: String {
+        didSet { defaults.set(dotImagePath, forKey: SettingsKey.dotImagePath) }
+    }
+
+    @Published var gridOpacity: Double {
+        didSet { defaults.set(gridOpacity, forKey: SettingsKey.gridOpacity) }
+    }
+
     init() {
         defaults.register(defaults: [
             SettingsKey.backgroundHex: "#000000",
@@ -110,7 +120,9 @@ final class Settings: ObservableObject {
             SettingsKey.highlightCurrentYear: true,
             SettingsKey.backgroundImagePath: "",
             SettingsKey.gridScale: 1.0,
-            SettingsKey.backgroundImageMode: BackgroundImageMode.fullScreen.rawValue
+            SettingsKey.backgroundImageMode: BackgroundImageMode.fullScreen.rawValue,
+            SettingsKey.dotImagePath: "",
+            SettingsKey.gridOpacity: 1.0
         ])
 
         let storedBirth = defaults.double(forKey: SettingsKey.birthdate)
@@ -133,34 +145,28 @@ final class Settings: ObservableObject {
         let modeRaw = defaults.string(forKey: SettingsKey.backgroundImageMode)
             ?? BackgroundImageMode.fullScreen.rawValue
         self.backgroundImageMode = BackgroundImageMode(rawValue: modeRaw) ?? .fullScreen
+        self.dotImagePath = defaults.string(forKey: SettingsKey.dotImagePath) ?? ""
+        let storedOpacity = defaults.double(forKey: SettingsKey.gridOpacity)
+        self.gridOpacity = storedOpacity > 0 ? storedOpacity : 1.0
     }
 
-    var backgroundImage: NSImage? {
-        guard !backgroundImagePath.isEmpty,
-              FileManager.default.fileExists(atPath: backgroundImagePath) else { return nil }
-        return NSImage(contentsOfFile: backgroundImagePath)
-    }
+    var backgroundImage: NSImage? { loadImage(at: backgroundImagePath) }
+    var dotImage: NSImage? { loadImage(at: dotImagePath) }
 
     @discardableResult
     func importBackgroundImage(from source: URL) -> Bool {
-        let fm = FileManager.default
-        guard let support = try? fm.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: true
-        ).appendingPathComponent("LifeCalendar", isDirectory: true) else { return false }
-        try? fm.createDirectory(at: support, withIntermediateDirectories: true)
-        let ext = source.pathExtension.isEmpty ? "img" : source.pathExtension
-        let dest = support.appendingPathComponent("background-\(Int(Date().timeIntervalSince1970)).\(ext)")
-        do {
-            try fm.copyItem(at: source, to: dest)
-            clearBackgroundImage()
-            backgroundImagePath = dest.path
-            return true
-        } catch {
-            return false
-        }
+        guard let path = copyImageToSupport(from: source, prefix: "background") else { return false }
+        clearBackgroundImage()
+        backgroundImagePath = path
+        return true
+    }
+
+    @discardableResult
+    func importDotImage(from source: URL) -> Bool {
+        guard let path = copyImageToSupport(from: source, prefix: "dotimage") else { return false }
+        clearDotImage()
+        dotImagePath = path
+        return true
     }
 
     func clearBackgroundImage() {
@@ -168,6 +174,37 @@ final class Settings: ObservableObject {
             try? FileManager.default.removeItem(atPath: backgroundImagePath)
         }
         backgroundImagePath = ""
+    }
+
+    func clearDotImage() {
+        if !dotImagePath.isEmpty {
+            try? FileManager.default.removeItem(atPath: dotImagePath)
+        }
+        dotImagePath = ""
+    }
+
+    private func loadImage(at path: String) -> NSImage? {
+        guard !path.isEmpty, FileManager.default.fileExists(atPath: path) else { return nil }
+        return NSImage(contentsOfFile: path)
+    }
+
+    private func copyImageToSupport(from source: URL, prefix: String) -> String? {
+        let fm = FileManager.default
+        guard let support = try? fm.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        ).appendingPathComponent("LifeCalendar", isDirectory: true) else { return nil }
+        try? fm.createDirectory(at: support, withIntermediateDirectories: true)
+        let ext = source.pathExtension.isEmpty ? "img" : source.pathExtension
+        let dest = support.appendingPathComponent("\(prefix)-\(Int(Date().timeIntervalSince1970)).\(ext)")
+        do {
+            try fm.copyItem(at: source, to: dest)
+            return dest.path
+        } catch {
+            return nil
+        }
     }
 
     func progress(at date: Date = Date()) -> LifeProgress {

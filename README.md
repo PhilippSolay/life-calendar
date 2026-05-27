@@ -14,16 +14,26 @@ We tend to measure life in days and weeks. Seeing all of it laid out as a grid o
 - **Lived / current / remaining** — solid dots for years lived, an emphasis ring on the current year, outlined dots for years to come.
 - **Fade curves** — the first N years grow in by size; the last N fade out by opacity. Smoothstep-eased, configurable.
 - **Background image** — pick any image; choose whether it fills the wallpaper, masks to the inside of each remaining-year ring, or only paints the ring outline itself.
+- **Dot image** — give the filled dots their own image. The image is masked to each circle, so the dots become little windows.
 - **Multi-display** — renders at each connected screen's native resolution and applies per `NSScreen`.
-- **Menu-bar app** — lives quietly in the menu bar (`LSUIElement`). Refreshes daily, on wake-from-sleep, and on screen-parameter changes.
-- **Liquid Glass UI** — onboarding, settings, and menu-bar popover all built with macOS 26's glass design system.
+- **Headless background updates** — a `LaunchAgent` runs the binary with `--apply` at login and at 03:00 daily. The wallpaper stays current without keeping the app open.
+- **Liquid Glass UI** — onboarding, settings, and every panel built with macOS 26's glass design system.
+
+## How it works
+
+The `.app` is purely a configuration tool. You launch it when you want to change something; you close it when you're done. The actual wallpaper updates are handled by a tiny headless mode of the same binary:
+
+```
+LifeCalendar              # launches the SwiftUI config app
+LifeCalendar --apply      # reads UserDefaults, renders, sets wallpaper, exits
+```
+
+A `LaunchAgent` plist shipped inside the bundle (`Contents/Library/LaunchAgents/com.philippsolay.LifeCalendar.plist`) registers via `SMAppService` and invokes `--apply` on the right schedule. Toggle it on/off from the Schedule section in Settings.
 
 ## Requirements
 
 - macOS 26 (Tahoe) or later
-- Xcode 26 / Swift 6.2
-
-The full Xcode toolchain is required; Command Line Tools alone won't link the SwiftPM manifest on macOS 26.
+- Xcode 26 / Swift 6.2 to build
 
 ## Build
 
@@ -32,13 +42,16 @@ The full Xcode toolchain is required; Command Line Tools alone won't link the Sw
 open "build/Life Calendar.app"
 ```
 
-The script runs `swift build -c release` against the Xcode toolchain (auto-detected via `DEVELOPER_DIR`), wraps the binary in a `.app` bundle with the right `Info.plist`, and ad-hoc signs it.
+The script runs `swift build -c release` against the full Xcode toolchain, wraps the binary in a `.app` bundle with the right `Info.plist`, drops the LaunchAgent plist into `Contents/Library/LaunchAgents/`, and ad-hoc signs.
+
+For real use, drag `build/Life Calendar.app` to `/Applications` (so the LaunchAgent's path stays stable across app rebuilds).
 
 ## Architecture
 
 ```
 Sources/LifeCalendar/
-├── LifeCalendarApp.swift         # @main, MenuBarExtra, WindowManager
+├── main.swift                    # entry: --apply branch vs SwiftUI app
+├── LifeCalendarApp.swift         # App scene, AppDelegate, RootView
 ├── Models/
 │   ├── LifeProgress.swift        # birthdate → cells (state, scale, opacity)
 │   ├── Settings.swift            # @MainActor ObservableObject, UserDefaults-backed
@@ -46,16 +59,17 @@ Sources/LifeCalendar/
 ├── Views/
 │   ├── LifeGridView.swift        # the centerpiece visual — pure SwiftUI
 │   ├── OnboardingView.swift      # 4-step glass flow
-│   ├── SettingsView.swift        # glass sidebar + live preview
-│   ├── MenuBarContent.swift      # glass menu popover
+│   ├── SettingsView.swift        # glass sidebar + live preview + schedule toggle
 │   └── View+Glass.swift          # .glassCard / .glassCircle helpers
 └── Services/
     ├── WallpaperRenderer.swift   # SwiftUI → PNG via ImageRenderer
     ├── WallpaperSetter.swift     # per-NSScreen, native resolution
-    └── Scheduler.swift           # daily timer + screen-change + wake
+    ├── WallpaperApply.swift      # shared helper: render + set
+    ├── ApplyMode.swift           # headless --apply entry (guards on hasOnboarded)
+    └── ScheduleService.swift     # SMAppService wrapper for the LaunchAgent
 ```
 
-The grid is a pure function of `(birthdate, totalYears, columns, fadeInYears, fadeOutYears) → cells`. The same `LifeGridView` drives the onboarding preview, the settings preview, and the rasterized wallpaper PNG — one source of truth.
+The grid is a pure function of `(birthdate, totalYears, columns, fadeInYears, fadeOutYears) → cells`. The same `LifeGridView` drives the onboarding preview, the settings preview, and the rasterized wallpaper PNG written by `--apply`.
 
 ## License
 
