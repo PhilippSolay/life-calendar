@@ -35,6 +35,7 @@ enum SettingsKey {
     static let backgroundImageMode = "backgroundImageMode"
     static let dotImagePath = "dotImagePath"
     static let gridOpacity = "gridOpacity"
+    static let originalWallpaperPath = "originalWallpaperPath"
 }
 
 @MainActor
@@ -107,6 +108,10 @@ final class Settings: ObservableObject {
         didSet { defaults.set(gridOpacity, forKey: SettingsKey.gridOpacity) }
     }
 
+    @Published var originalWallpaperPath: String {
+        didSet { defaults.set(originalWallpaperPath, forKey: SettingsKey.originalWallpaperPath) }
+    }
+
     init() {
         defaults.register(defaults: [
             SettingsKey.backgroundHex: "#000000",
@@ -122,7 +127,8 @@ final class Settings: ObservableObject {
             SettingsKey.gridScale: 1.0,
             SettingsKey.backgroundImageMode: BackgroundImageMode.fullScreen.rawValue,
             SettingsKey.dotImagePath: "",
-            SettingsKey.gridOpacity: 1.0
+            SettingsKey.gridOpacity: 1.0,
+            SettingsKey.originalWallpaperPath: ""
         ])
 
         let storedBirth = defaults.double(forKey: SettingsKey.birthdate)
@@ -148,6 +154,7 @@ final class Settings: ObservableObject {
         self.dotImagePath = defaults.string(forKey: SettingsKey.dotImagePath) ?? ""
         let storedOpacity = defaults.double(forKey: SettingsKey.gridOpacity)
         self.gridOpacity = storedOpacity > 0 ? storedOpacity : 1.0
+        self.originalWallpaperPath = defaults.string(forKey: SettingsKey.originalWallpaperPath) ?? ""
     }
 
     var backgroundImage: NSImage? { loadImage(at: backgroundImagePath) }
@@ -181,6 +188,39 @@ final class Settings: ObservableObject {
             try? FileManager.default.removeItem(atPath: dotImagePath)
         }
         dotImagePath = ""
+    }
+
+    /// True if the URL points at a wallpaper file this app generated.
+    /// Used to break the feedback loop when re-importing the "current" wallpaper.
+    static func isOurOutput(url: URL) -> Bool {
+        url.lastPathComponent.hasPrefix("wallpaper-") && url.path.contains("/LifeCalendar/")
+    }
+
+    @discardableResult
+    func importCurrentWallpaper() -> Bool {
+        let sourceURL: URL?
+        if let screen = NSScreen.main,
+           let current = NSWorkspace.shared.desktopImageURL(for: screen),
+           !Self.isOurOutput(url: current) {
+            sourceURL = current
+        } else if !originalWallpaperPath.isEmpty,
+                  FileManager.default.fileExists(atPath: originalWallpaperPath) {
+            sourceURL = URL(fileURLWithPath: originalWallpaperPath)
+        } else {
+            sourceURL = nil
+        }
+        guard let source = sourceURL else { return false }
+        return importBackgroundImage(from: source)
+    }
+
+    /// Records the wallpaper that was set before we ever touched it,
+    /// so "Use current wallpaper" still works after Life Calendar takes over.
+    func captureOriginalWallpaperIfNeeded() {
+        guard originalWallpaperPath.isEmpty else { return }
+        guard let screen = NSScreen.main,
+              let url = NSWorkspace.shared.desktopImageURL(for: screen),
+              !Self.isOurOutput(url: url) else { return }
+        originalWallpaperPath = url.path
     }
 
     private func loadImage(at path: String) -> NSImage? {

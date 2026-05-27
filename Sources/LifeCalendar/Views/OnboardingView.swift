@@ -188,6 +188,13 @@ struct OnboardingView: View {
                     onPick: { pickImage(into: .background) },
                     onClear: { settings.clearBackgroundImage() }
                 )
+                Button {
+                    settings.importCurrentWallpaper()
+                } label: {
+                    Label("Use current wallpaper", systemImage: "photo.on.rectangle")
+                }
+                .buttonStyle(.glass)
+                .controlSize(.small)
                 if settings.backgroundImage != nil {
                     Picker("", selection: $settings.backgroundImageMode) {
                         ForEach(BackgroundImageMode.allCases) { Text($0.label).tag($0) }

@@ -5,6 +5,7 @@ struct WallpaperSetter {
     let renderer: WallpaperRenderer
 
     func applyToAllScreens() {
+        renderer.settings.captureOriginalWallpaperIfNeeded()
         for screen in NSScreen.screens {
             do {
                 try apply(to: screen)
