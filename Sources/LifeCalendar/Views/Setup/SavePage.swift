@@ -14,20 +14,26 @@ struct SavePage: View {
             SaveAction(
                 label: "Save Wallpaper",
                 sub: "Export a PNG to your downloads.",
-                action: { print("TODO: PNG export (Track D)") }
+                action: {
+                    if let url = ImageExporter.exportToDownloads(using: settings) {
+                        ImageExporter.revealInFinder(url)
+                    }
+                }
             )
 
             SaveAction(
                 label: "Share via Email",
                 sub: "Attach the wallpaper to a new message.",
-                action: { print("TODO: NSSharingService email (Track D)") }
+                action: {
+                    ImageExporter.shareViaEmail(using: settings)
+                }
             )
 
             SaveAction(
                 label: "Set as Wallpaper",
                 sub: "Apply to every connected display.",
                 prominent: true,
-                action: { WallpaperApply.apply(using: Settings.shared) }
+                action: { WallpaperApply.apply(using: settings) }
             )
 
             divider
