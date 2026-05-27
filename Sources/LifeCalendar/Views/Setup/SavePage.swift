@@ -6,6 +6,10 @@ import ServiceManagement
 struct SavePage: View {
     @EnvironmentObject var settings: Settings
     @StateObject private var schedule = ScheduleService.shared
+    @StateObject private var presets = PresetStore.shared
+
+    @State private var showingNamePrompt = false
+    @State private var draftName: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -30,6 +34,15 @@ struct SavePage: View {
             )
 
             SaveAction(
+                label: "Save a preset",
+                sub: "Store this look in your Presets tab.",
+                action: {
+                    draftName = "Preset \(presets.presets.count + 1)"
+                    showingNamePrompt = true
+                }
+            )
+
+            SaveAction(
                 label: "Set as Wallpaper",
                 sub: "Apply to every connected display.",
                 prominent: true,
@@ -39,6 +52,18 @@ struct SavePage: View {
             divider
 
             scheduleRow
+        }
+        .alert("Name this preset", isPresented: $showingNamePrompt) {
+            TextField("Name", text: $draftName)
+            Button("Save") {
+                let trimmed = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                let preset = presets.snapshot(from: settings, named: trimmed)
+                presets.save(preset)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Saved presets appear under the star tab.")
         }
     }
 

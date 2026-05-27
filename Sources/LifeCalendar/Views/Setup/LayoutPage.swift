@@ -10,9 +10,9 @@ struct LayoutPage: View {
             positionRow
             paddingRow
             gridSizeRow
+            columnsRow
             iconTypeRow
             iconSizeRow
-            columnsRow
         }
     }
 

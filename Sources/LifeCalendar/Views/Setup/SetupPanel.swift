@@ -52,6 +52,7 @@ struct SetupPanel: View {
         case .lifespan: LifeSpanPage()
         case .style:    StylePage()
         case .layout:   LayoutPage()
+        case .presets:  PresetsPage()
         case .save:     SavePage()
         }
     }

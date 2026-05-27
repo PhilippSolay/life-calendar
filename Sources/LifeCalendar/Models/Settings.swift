@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import Combine
 
-enum GridAnchor: String, CaseIterable, Identifiable {
+enum GridAnchor: String, CaseIterable, Identifiable, Codable {
     case topLeading, top, topTrailing
     case leading, center, trailing
     case bottomLeading, bottom, bottomTrailing
@@ -62,7 +62,7 @@ enum GridAnchor: String, CaseIterable, Identifiable {
     }
 }
 
-enum BackgroundImageMode: String, CaseIterable, Identifiable {
+enum BackgroundImageMode: String, CaseIterable, Identifiable, Codable {
     case fullScreen
     case insideRings
     case ringOutlines
@@ -78,7 +78,7 @@ enum BackgroundImageMode: String, CaseIterable, Identifiable {
     }
 }
 
-enum DotShape: String, CaseIterable, Identifiable {
+enum DotShape: String, CaseIterable, Identifiable, Codable {
     case circle
     case roundedSquare
     case square
@@ -86,7 +86,7 @@ enum DotShape: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-enum CurrentYearStyle: String, CaseIterable, Identifiable {
+enum CurrentYearStyle: String, CaseIterable, Identifiable, Codable {
     case outline
     case color
     case image

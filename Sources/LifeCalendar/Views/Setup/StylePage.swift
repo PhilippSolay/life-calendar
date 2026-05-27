@@ -60,9 +60,10 @@ struct StylePage: View {
 
     @ViewBuilder
     private var backgroundImageControls: some View {
-        if settings.backgroundImage != nil {
+        if let image = settings.backgroundImage {
             FilenameChip(
                 name: URL(fileURLWithPath: settings.backgroundImagePath).lastPathComponent,
+                thumb: image,
                 onRemove: { settings.clearBackgroundImage() }
             )
         } else {
@@ -106,9 +107,10 @@ struct StylePage: View {
 
     @ViewBuilder
     private var iconsImageControls: some View {
-        if settings.dotImage != nil {
+        if let image = settings.dotImage {
             FilenameChip(
                 name: URL(fileURLWithPath: settings.dotImagePath).lastPathComponent,
+                thumb: image,
                 onRemove: { settings.clearDotImage() }
             )
         } else {

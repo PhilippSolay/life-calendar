@@ -149,11 +149,21 @@ struct LifeGridView: View {
     }
 
     private func filledCellsMask(layout: CellLayout) -> some View {
+        // The current cell is masked from the dot image only when the user has
+        // chosen `.image` for current year. Otherwise the current cell is drawn
+        // explicitly by `currentCell` so the outline / color style shows through.
         ZStack {
             Color.clear
             ForEach(0..<progress.totalYears, id: \.self) { index in
                 let cell = progress.cells[index]
-                if cell.state == .lived || cell.state == .current {
+                let include: Bool = {
+                    switch cell.state {
+                    case .lived: return true
+                    case .current: return currentYearStyle == .image
+                    case .remaining: return false
+                    }
+                }()
+                if include {
                     let center = layout.center(at: index)
                     let dotSize = layout.dotSize(scale: cell.sizeScale)
                     shapeFilled(size: dotSize, color: .white)
@@ -195,19 +205,19 @@ struct LifeGridView: View {
             // Inner mark depends on the chosen style.
             switch currentYearStyle {
             case .outline:
-                // Just a slightly thicker stroke than the remaining cells, no fill.
-                shapeStroked(size: size, color: foregroundColor, lineWidth: baseStroke * 2.0)
+                // Thicker stroke than the remaining cells so the current year
+                // reads as a deliberate accent rather than another empty ring.
+                shapeStroked(size: size, color: foregroundColor, lineWidth: baseStroke * 3.0)
             case .color:
-                if dotImage == nil {
-                    shapeFilled(size: size, color: foregroundColor)
-                }
+                // Solid fill in the foreground color. Always drawn — even when
+                // a dot image is set, because the filledCellsMask now excludes
+                // the current cell unless the user explicitly picks .image.
+                shapeFilled(size: size, color: foregroundColor)
             case .image:
-                if dotImage != nil {
-                    // The fullScreenImage masked by filledCellsMask renders the image
-                    // into this cell — nothing extra to draw here.
-                    EmptyView()
-                } else {
-                    // Fallback when no image is configured: behave like .color.
+                // When a dot image is configured, the filledCellsMask renders
+                // it into this cell — nothing extra to draw here. When there's
+                // no image, fall back to a solid colored fill.
+                if dotImage == nil {
                     shapeFilled(size: size, color: foregroundColor)
                 }
             }
@@ -236,8 +246,11 @@ private struct CellLayout {
         let width = cellSize * Double(columns)
         let height = cellSize * Double(rows)
 
-        let padX = canvas.width * sidePadding
-        let padY = canvas.height * sidePadding
+        // Use the smaller dimension so left/right and top/bottom paddings end up
+        // with the same pixel value (instead of one being wider on landscape).
+        let pad = min(canvas.width, canvas.height) * sidePadding
+        let padX = pad
+        let padY = pad
 
         switch gridAnchor.horizontal {
         case .leading:

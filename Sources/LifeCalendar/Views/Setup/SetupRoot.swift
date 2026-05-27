@@ -2,16 +2,26 @@ import SwiftUI
 
 /// Tabs in the floating setup panel.
 enum SetupTab: String, CaseIterable, Identifiable {
-    case lifespan, style, layout, save
+    case lifespan, style, layout, presets, save
 
     var id: String { rawValue }
 
-    var label: String {
+    /// Text label, or nil if the tab uses an SF Symbol icon instead.
+    var label: String? {
         switch self {
         case .lifespan: return "Life span"
         case .style:    return "Style"
         case .layout:   return "Layout"
+        case .presets:  return nil
         case .save:     return "Save"
+        }
+    }
+
+    /// SF Symbol name, used for icon-only tabs.
+    var icon: String? {
+        switch self {
+        case .presets: return "star"
+        default:       return nil
         }
     }
 }

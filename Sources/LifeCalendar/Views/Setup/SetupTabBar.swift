@@ -35,10 +35,8 @@ struct SetupTabBar: View {
                 selectedTab = tab
             }
         } label: {
-            Text(tab.label)
-                .font(.system(size: 12))
-                .foregroundStyle(isSelected ? .white : .white.opacity(0.65))
-                .frame(maxWidth: .infinity)
+            label(for: tab, isSelected: isSelected)
+                .frame(maxWidth: tab.icon != nil ? 36 : .infinity)
                 .frame(height: buttonHeight)
                 .background(
                     Group {
@@ -63,6 +61,19 @@ struct SetupTabBar: View {
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func label(for tab: SetupTab, isSelected: Bool) -> some View {
+        if let icon = tab.icon {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .regular))
+                .foregroundStyle(isSelected ? .white : .white.opacity(0.65))
+        } else if let text = tab.label {
+            Text(text)
+                .font(.system(size: 12))
+                .foregroundStyle(isSelected ? .white : .white.opacity(0.65))
+        }
     }
 }
 
