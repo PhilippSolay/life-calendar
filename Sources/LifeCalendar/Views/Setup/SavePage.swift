@@ -1,11 +1,11 @@
 import SwiftUI
-import ServiceManagement
+import AppKit
 
-/// Save tab of the setup panel: PNG export, share via email, set as wallpaper,
-/// and the LaunchAgent auto-update toggle row.
+/// Save tab: export / share / preset / set-as-wallpaper actions plus a Done
+/// button to quit the configurator. The LaunchAgent still installs silently
+/// on first onboarding completion — it's just no longer surfaced as a toggle.
 struct SavePage: View {
     @EnvironmentObject var settings: Settings
-    @StateObject private var schedule = ScheduleService.shared
     @StateObject private var presets = PresetStore.shared
 
     @State private var showingNamePrompt = false
@@ -47,9 +47,8 @@ struct SavePage: View {
                 action: { WallpaperApply.apply(using: settings) }
             )
 
-            divider
-
-            scheduleRow
+            doneButton
+                .padding(.top, 6)
         }
         .alert("Name this preset", isPresented: $showingNamePrompt) {
             TextField("Name", text: $draftName)
@@ -65,103 +64,17 @@ struct SavePage: View {
         }
     }
 
-    // MARK: - Divider
+    // MARK: - Done button
 
     @ViewBuilder
-    private var divider: some View {
-        Rectangle()
-            .fill(Color.white.opacity(0.08))
-            .frame(height: 1)
-            .padding(.vertical, 6)
-    }
-
-    // MARK: - Schedule toggle + helper
-
-    @ViewBuilder
-    private var scheduleRow: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center) {
-                Text("Auto-update at login and daily")
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(.white.opacity(0.7))
-                Spacer()
-                ScheduleToggle(
-                    isOn: schedule.isInstalled,
-                    onToggle: { newValue in
-                        if newValue {
-                            schedule.install()
-                        } else {
-                            schedule.uninstall()
-                        }
-                    }
-                )
+    private var doneButton: some View {
+        HStack {
+            Spacer()
+            GlassButton(size: .lg, action: { NSApp.terminate(nil) }) {
+                Text("Done")
             }
-
-            Text(statusHelperText)
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.45))
-                .fixedSize(horizontal: false, vertical: true)
-
-            if schedule.status == .requiresApproval {
-                GlassButton(size: .sm, action: { schedule.openLoginItems() }) {
-                    Text("Open Login Items…")
-                }
-            }
+            Spacer()
         }
-    }
-
-    private var statusHelperText: String {
-        switch schedule.status {
-        case .enabled:
-            return "Running. Refreshes at login and at 3:00 AM daily."
-        case .requiresApproval:
-            return "Waiting for approval in System Settings → Login Items."
-        case .notRegistered:
-            return "Not installed. The wallpaper only updates while the app is open."
-        case .notFound:
-            return "Schedule plist missing from app bundle."
-        @unknown default:
-            return "Status unknown."
-        }
-    }
-}
-
-/// Custom toggle matching `.toggle` in styles.css: 32 × 19 pt track with a 15 pt thumb.
-/// On: track white 85%, thumb dark. Off: track white 12%, thumb white.
-private struct ScheduleToggle: View {
-    let isOn: Bool
-    let onToggle: (Bool) -> Void
-
-    private let trackWidth: CGFloat = 32
-    private let trackHeight: CGFloat = 19
-    private let thumbDiameter: CGFloat = 15
-    private let inset: CGFloat = 2
-
-    var body: some View {
-        // CSS: track 32×19 with thumb travel of 13pt (15pt thumb + 2pt left inset → 30pt → 32-30=2 right gap).
-        let travel = trackWidth - thumbDiameter - inset * 2 // 32 - 15 - 4 = 13
-
-        Button {
-            onToggle(!isOn)
-        } label: {
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(isOn ? Color.white.opacity(0.85) : Color.white.opacity(0.12))
-                    .frame(width: trackWidth, height: trackHeight)
-
-                Circle()
-                    .fill(isOn
-                          ? Color(red: 20.0 / 255.0, green: 18.0 / 255.0, blue: 33.0 / 255.0)
-                          : Color.white)
-                    .frame(width: thumbDiameter, height: thumbDiameter)
-                    .shadow(color: .black.opacity(0.3), radius: 1, y: 1)
-                    .offset(x: inset + (isOn ? travel : 0))
-            }
-            .frame(width: trackWidth, height: trackHeight)
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .animation(.smooth(duration: 0.2), value: isOn)
     }
 }
 
