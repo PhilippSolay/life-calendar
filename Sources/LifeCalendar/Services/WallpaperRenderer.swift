@@ -15,7 +15,9 @@ struct WallpaperRenderer {
             gridScale: settings.gridScale,
             backgroundImageMode: settings.backgroundImageMode,
             dotImage: settings.dotImage,
-            gridOpacity: settings.gridOpacity
+            gridOpacity: settings.gridOpacity,
+            gridAnchor: settings.gridAnchor,
+            sidePadding: settings.sidePadding
         )
         .frame(width: size.width, height: size.height)
 

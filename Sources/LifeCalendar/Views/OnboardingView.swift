@@ -10,13 +10,14 @@ struct OnboardingView: View {
     @State private var step: Step = .birthdate
 
     enum Step: Int, CaseIterable, Identifiable {
-        case birthdate, lifespan, look, save
+        case birthdate, lifespan, layout, look, save
         var id: Int { rawValue }
 
         var icon: String {
             switch self {
             case .birthdate: return "calendar"
             case .lifespan: return "circle.grid.3x3"
+            case .layout: return "rectangle.3.group"
             case .look: return "paintbrush"
             case .save: return "checkmark.seal"
             }
@@ -26,6 +27,7 @@ struct OnboardingView: View {
             switch self {
             case .birthdate: return "When were you born?"
             case .lifespan: return "Your lifespan"
+            case .layout: return "Layout"
             case .look: return "Make it yours"
             case .save: return "Ready"
             }
@@ -35,7 +37,8 @@ struct OnboardingView: View {
             switch self {
             case .birthdate: return "Every dot in your calendar is anchored to this date."
             case .lifespan: return "How many years should the grid hold, and how should the edges fade?"
-            case .look: return "Background, dots, and how the grid sits on your desktop."
+            case .layout: return "Where should the grid sit on your wallpaper?"
+            case .look: return "Background, dots, and how much the grid stands out."
             case .save: return "Set your wallpaper now. Everything stays editable from the menu bar."
             }
         }
@@ -67,6 +70,7 @@ struct OnboardingView: View {
         .frame(width: 920, height: 920)
         .foregroundStyle(.white)
         .preferredColorScheme(.dark)
+        .background(WindowConfigurator(showTrafficLights: false))
     }
 
     private var backdrop: some View {
@@ -131,6 +135,7 @@ struct OnboardingView: View {
         switch step {
         case .birthdate: birthdateStep
         case .lifespan: lifespanStep
+        case .layout: layoutStep
         case .look: lookStep
         case .save: saveStep
         }
@@ -158,18 +163,55 @@ struct OnboardingView: View {
     }
 
     private var lifespanStep: some View {
-        HStack(spacing: 24) {
-            VStack(alignment: .leading, spacing: 4) {
-                slimRow(label: "Total years", value: $settings.totalYears, range: 40...130)
-                slimRow(label: "Columns", value: $settings.columns, range: 4...24)
-                slimRow(label: "Grow first", value: $settings.fadeInYears, range: 0...30, suffix: " yrs")
-                slimRow(label: "Fade last", value: $settings.fadeOutYears, range: 0...30, suffix: " yrs")
-            }
-            .padding(20)
-            .frame(width: 300, alignment: .topLeading)
-            .glassCard(cornerRadius: 22)
+        VStack(spacing: 28) {
+            transparentPreview
+                .frame(maxWidth: 540, maxHeight: 320)
+                .frame(maxWidth: .infinity)
 
+            HStack(spacing: 16) {
+                columnControl(label: "Total years", value: $settings.totalYears, range: 40...130)
+                columnControl(label: "Columns", value: $settings.columns, range: 4...24)
+                columnControl(label: "Grow first", value: $settings.fadeInYears, range: 0...30, suffix: " yrs")
+                columnControl(label: "Fade last", value: $settings.fadeOutYears, range: 0...30, suffix: " yrs")
+            }
+        }
+    }
+
+    private var layoutStep: some View {
+        VStack(spacing: 20) {
             preview
+                .frame(maxHeight: 360)
+
+            HStack(alignment: .top, spacing: 20) {
+                VStack(alignment: .leading, spacing: 10) {
+                    sectionLabel("Size")
+                    sliderPercentRow(value: $settings.gridScale, range: 0.3...1.0)
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .glassCard(cornerRadius: 18)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    sectionLabel("Position")
+                    anchorMatrix(selected: $settings.gridAnchor)
+                }
+                .padding(20)
+                .glassCard(cornerRadius: 18)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    sectionLabel("Side padding")
+                    if settings.gridAnchor.isCentered {
+                        Text("No effect when centered.")
+                            .font(.caption2)
+                            .foregroundStyle(.white.opacity(0.45))
+                    } else {
+                        sliderPercentRow(value: $settings.sidePadding, range: 0.0...0.2)
+                    }
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .glassCard(cornerRadius: 18)
+            }
         }
     }
 
@@ -220,8 +262,21 @@ struct OnboardingView: View {
 
                 slimDivider
 
-                sliderRow(label: "Grid scale", value: $settings.gridScale, range: 0.3...1.0)
-                sliderRow(label: "Grid opacity", value: $settings.gridOpacity, range: 0.0...1.0)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Grid opacity")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.7))
+                        Spacer()
+                        Text("\(Int(settings.gridOpacity * 100))%")
+                            .font(.system(size: 12, weight: .light))
+                            .monospacedDigit()
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                    Slider(value: $settings.gridOpacity, in: 0.0...1.0)
+                        .tint(.white)
+                        .controlSize(.small)
+                }
             }
             .padding(20)
             .frame(width: 320, alignment: .topLeading)
@@ -256,10 +311,29 @@ struct OnboardingView: View {
             gridScale: settings.gridScale,
             backgroundImageMode: settings.backgroundImageMode,
             dotImage: settings.dotImage,
-            gridOpacity: settings.gridOpacity
+            gridOpacity: settings.gridOpacity,
+            gridAnchor: settings.gridAnchor,
+            sidePadding: settings.sidePadding
         )
         .aspectRatio(16.0 / 10.0, contentMode: .fit)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var transparentPreview: some View {
+        LifeGridView(
+            progress: settings.progress(),
+            backgroundColor: .clear,
+            foregroundColor: .white,
+            highlightCurrentYear: settings.highlightCurrentYear,
+            backgroundImage: nil,
+            gridScale: 1.0,
+            backgroundImageMode: .fullScreen,
+            dotImage: nil,
+            gridOpacity: 1.0,
+            gridAnchor: .center,
+            sidePadding: 0
+        )
+        .aspectRatio(16.0 / 10.0, contentMode: .fit)
     }
 
     private var slimDivider: some View {
@@ -305,21 +379,73 @@ struct OnboardingView: View {
         }
     }
 
-    private func slimRow(label: String, value: Binding<Int>, range: ClosedRange<Int>, suffix: String = "") -> some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 12))
-                .foregroundStyle(.white.opacity(0.65))
-            Spacer()
+    private func columnControl(label: String, value: Binding<Int>, range: ClosedRange<Int>, suffix: String = "") -> some View {
+        VStack(spacing: 8) {
+            Text(label.uppercased())
+                .font(.caption2)
+                .tracking(0.8)
+                .foregroundStyle(.white.opacity(0.5))
             Text("\(value.wrappedValue)\(suffix)")
-                .font(.system(size: 13, weight: .light))
+                .font(.system(size: 26, weight: .light))
                 .monospacedDigit()
-                .foregroundStyle(.white.opacity(0.95))
+                .foregroundStyle(.white)
             Stepper("", value: value, in: range)
                 .labelsHidden()
                 .controlSize(.small)
         }
-        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .glassCard(cornerRadius: 18)
+    }
+
+    private func sliderPercentRow(value: Binding<Double>, range: ClosedRange<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Slider(value: value, in: range)
+                .tint(.white)
+                .controlSize(.small)
+            Text("\(Int(value.wrappedValue * 100))%")
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.white.opacity(0.55))
+        }
+    }
+
+    private func anchorMatrix(selected: Binding<GridAnchor>) -> some View {
+        let grid: [[GridAnchor]] = [
+            [.topLeading, .top, .topTrailing],
+            [.leading, .center, .trailing],
+            [.bottomLeading, .bottom, .bottomTrailing]
+        ]
+        return RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+            .overlay {
+                VStack(spacing: 0) {
+                    ForEach(0..<3, id: \.self) { row in
+                        HStack(spacing: 0) {
+                            ForEach(0..<3, id: \.self) { col in
+                                anchorCell(grid[row][col], selected: selected)
+                            }
+                        }
+                    }
+                }
+                .padding(8)
+            }
+            .frame(width: 132, height: 84)
+    }
+
+    private func anchorCell(_ anchor: GridAnchor, selected: Binding<GridAnchor>) -> some View {
+        Button {
+            selected.wrappedValue = anchor
+        } label: {
+            Circle()
+                .fill(selected.wrappedValue == anchor ? .white : .white.opacity(0.22))
+                .frame(width: selected.wrappedValue == anchor ? 10 : 7,
+                       height: selected.wrappedValue == anchor ? 10 : 7)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selected.wrappedValue)
     }
 
     private func sectionLabel(_ text: String) -> some View {
@@ -336,24 +462,6 @@ struct OnboardingView: View {
                 .foregroundStyle(.white.opacity(0.7))
             Spacer()
             content()
-        }
-    }
-
-    private func sliderRow(label: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(label)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.7))
-                Spacer()
-                Text("\(Int(value.wrappedValue * 100))%")
-                    .font(.system(size: 12, weight: .light))
-                    .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.6))
-            }
-            Slider(value: value, in: range)
-                .tint(.white)
-                .controlSize(.small)
         }
     }
 

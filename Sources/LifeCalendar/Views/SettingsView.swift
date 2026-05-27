@@ -28,6 +28,7 @@ struct SettingsView: View {
         .frame(minWidth: 1000, minHeight: 680)
         .foregroundStyle(.white)
         .preferredColorScheme(.dark)
+        .background(WindowConfigurator(showTrafficLights: true))
         .onAppear {
             backgroundColor = Color(hex: settings.backgroundHex)
             foregroundColor = Color(hex: settings.foregroundHex)
@@ -65,7 +66,9 @@ struct SettingsView: View {
             gridScale: settings.gridScale,
             backgroundImageMode: settings.backgroundImageMode,
             dotImage: settings.dotImage,
-            gridOpacity: settings.gridOpacity
+            gridOpacity: settings.gridOpacity,
+            gridAnchor: settings.gridAnchor,
+            sidePadding: settings.sidePadding
         )
     }
 
@@ -146,9 +149,23 @@ struct SettingsView: View {
                         .controlSize(.small)
                 }
 
-                section("Grid") {
-                    sliderPercentRow(label: "Scale on screen", value: $settings.gridScale, in: 0.3...1.0)
-                    sliderPercentRow(label: "Opacity", value: $settings.gridOpacity, in: 0.0...1.0)
+                section("Layout") {
+                    sliderPercentRow(label: "Size", value: $settings.gridScale, in: 0.3...1.0)
+                    Text("Position")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.7))
+                    anchorMatrix(selected: $settings.gridAnchor)
+                    if settings.gridAnchor.isCentered {
+                        Text("Side padding has no effect when centered.")
+                            .font(.caption2)
+                            .foregroundStyle(.white.opacity(0.45))
+                    } else {
+                        sliderPercentRow(label: "Side padding", value: $settings.sidePadding, in: 0.0...0.2)
+                    }
+                }
+
+                section("Grid opacity") {
+                    sliderPercentRow(label: "", value: $settings.gridOpacity, in: 0.0...1.0)
                 }
 
                 section("Schedule") {
@@ -300,6 +317,44 @@ struct SettingsView: View {
         case .notFound: return "Schedule plist missing from app bundle."
         @unknown default: return "Unknown status."
         }
+    }
+
+    private func anchorMatrix(selected: Binding<GridAnchor>) -> some View {
+        let grid: [[GridAnchor]] = [
+            [.topLeading, .top, .topTrailing],
+            [.leading, .center, .trailing],
+            [.bottomLeading, .bottom, .bottomTrailing]
+        ]
+        return RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+            .overlay {
+                VStack(spacing: 0) {
+                    ForEach(0..<3, id: \.self) { row in
+                        HStack(spacing: 0) {
+                            ForEach(0..<3, id: \.self) { col in
+                                anchorCell(grid[row][col], selected: selected)
+                            }
+                        }
+                    }
+                }
+                .padding(8)
+            }
+            .frame(width: 132, height: 84)
+    }
+
+    private func anchorCell(_ anchor: GridAnchor, selected: Binding<GridAnchor>) -> some View {
+        Button {
+            selected.wrappedValue = anchor
+        } label: {
+            Circle()
+                .fill(selected.wrappedValue == anchor ? .white : .white.opacity(0.22))
+                .frame(width: selected.wrappedValue == anchor ? 10 : 7,
+                       height: selected.wrappedValue == anchor ? 10 : 7)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selected.wrappedValue)
     }
 
     private enum ImageSlot { case background, dots }

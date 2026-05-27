@@ -2,6 +2,35 @@ import SwiftUI
 import AppKit
 import Combine
 
+enum GridAnchor: String, CaseIterable, Identifiable {
+    case topLeading, top, topTrailing
+    case leading, center, trailing
+    case bottomLeading, bottom, bottomTrailing
+
+    var id: String { rawValue }
+
+    enum HorizontalAnchor { case leading, center, trailing }
+    enum VerticalAnchor { case top, center, bottom }
+
+    var horizontal: HorizontalAnchor {
+        switch self {
+        case .topLeading, .leading, .bottomLeading: return .leading
+        case .top, .center, .bottom: return .center
+        case .topTrailing, .trailing, .bottomTrailing: return .trailing
+        }
+    }
+
+    var vertical: VerticalAnchor {
+        switch self {
+        case .topLeading, .top, .topTrailing: return .top
+        case .leading, .center, .trailing: return .center
+        case .bottomLeading, .bottom, .bottomTrailing: return .bottom
+        }
+    }
+
+    var isCentered: Bool { self == .center }
+}
+
 enum BackgroundImageMode: String, CaseIterable, Identifiable {
     case fullScreen
     case insideRings
@@ -36,6 +65,8 @@ enum SettingsKey {
     static let dotImagePath = "dotImagePath"
     static let gridOpacity = "gridOpacity"
     static let originalWallpaperPath = "originalWallpaperPath"
+    static let gridAnchor = "gridAnchor"
+    static let sidePadding = "sidePadding"
 }
 
 @MainActor
@@ -112,6 +143,14 @@ final class Settings: ObservableObject {
         didSet { defaults.set(originalWallpaperPath, forKey: SettingsKey.originalWallpaperPath) }
     }
 
+    @Published var gridAnchor: GridAnchor {
+        didSet { defaults.set(gridAnchor.rawValue, forKey: SettingsKey.gridAnchor) }
+    }
+
+    @Published var sidePadding: Double {
+        didSet { defaults.set(sidePadding, forKey: SettingsKey.sidePadding) }
+    }
+
     init() {
         defaults.register(defaults: [
             SettingsKey.backgroundHex: "#000000",
@@ -128,7 +167,9 @@ final class Settings: ObservableObject {
             SettingsKey.backgroundImageMode: BackgroundImageMode.fullScreen.rawValue,
             SettingsKey.dotImagePath: "",
             SettingsKey.gridOpacity: 1.0,
-            SettingsKey.originalWallpaperPath: ""
+            SettingsKey.originalWallpaperPath: "",
+            SettingsKey.gridAnchor: GridAnchor.center.rawValue,
+            SettingsKey.sidePadding: 0.05
         ])
 
         let storedBirth = defaults.double(forKey: SettingsKey.birthdate)
@@ -155,6 +196,9 @@ final class Settings: ObservableObject {
         let storedOpacity = defaults.double(forKey: SettingsKey.gridOpacity)
         self.gridOpacity = storedOpacity > 0 ? storedOpacity : 1.0
         self.originalWallpaperPath = defaults.string(forKey: SettingsKey.originalWallpaperPath) ?? ""
+        let anchorRaw = defaults.string(forKey: SettingsKey.gridAnchor) ?? GridAnchor.center.rawValue
+        self.gridAnchor = GridAnchor(rawValue: anchorRaw) ?? .center
+        self.sidePadding = defaults.double(forKey: SettingsKey.sidePadding)
     }
 
     var backgroundImage: NSImage? { loadImage(at: backgroundImagePath) }

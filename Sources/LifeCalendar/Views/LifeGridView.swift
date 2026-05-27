@@ -11,6 +11,8 @@ struct LifeGridView: View {
     let backgroundImageMode: BackgroundImageMode
     let dotImage: NSImage?
     let gridOpacity: Double
+    let gridAnchor: GridAnchor
+    let sidePadding: Double
 
     private let cellPadding: Double = 0.18
     private let strokeRatio: Double = 0.06
@@ -22,6 +24,8 @@ struct LifeGridView: View {
                 columns: progress.columns,
                 rows: progress.rows,
                 gridScale: gridScale,
+                gridAnchor: gridAnchor,
+                sidePadding: sidePadding,
                 cellPadding: cellPadding,
                 strokeRatio: strokeRatio
             )
@@ -164,13 +168,33 @@ private struct CellLayout {
     let cellPadding: Double
     let strokeRatio: Double
 
-    init(canvas: CGSize, columns: Int, rows: Int, gridScale: Double, cellPadding: Double, strokeRatio: Double) {
+    init(canvas: CGSize, columns: Int, rows: Int, gridScale: Double, gridAnchor: GridAnchor, sidePadding: Double, cellPadding: Double, strokeRatio: Double) {
         let base = min(canvas.width / Double(columns), canvas.height / Double(rows))
         self.cellSize = base * gridScale
         let width = cellSize * Double(columns)
         let height = cellSize * Double(rows)
-        self.originX = (canvas.width - width) / 2
-        self.originY = (canvas.height - height) / 2
+
+        let padX = canvas.width * sidePadding
+        let padY = canvas.height * sidePadding
+
+        switch gridAnchor.horizontal {
+        case .leading:
+            self.originX = padX
+        case .center:
+            self.originX = (canvas.width - width) / 2
+        case .trailing:
+            self.originX = canvas.width - width - padX
+        }
+
+        switch gridAnchor.vertical {
+        case .top:
+            self.originY = padY
+        case .center:
+            self.originY = (canvas.height - height) / 2
+        case .bottom:
+            self.originY = canvas.height - height - padY
+        }
+
         self.columns = columns
         self.cellPadding = cellPadding
         self.strokeRatio = strokeRatio
