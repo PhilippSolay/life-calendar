@@ -9,6 +9,7 @@ struct LayoutPage: View {
         VStack(alignment: .leading, spacing: 18) {
             positionRow
             paddingRow
+            gridSizeRow
             iconTypeRow
             iconSizeRow
             columnsRow
@@ -35,14 +36,7 @@ struct LayoutPage: View {
 
     @ViewBuilder
     private var paddingRow: some View {
-        if settings.gridAnchor.isCentered {
-            HStack {
-                Text("Padding · no effect when centered")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.45))
-                Spacer()
-            }
-        } else {
+        if !settings.gridAnchor.isCentered {
             NumRow(
                 label: "Padding",
                 value: Int(round(settings.sidePadding * 100)),
@@ -51,6 +45,19 @@ struct LayoutPage: View {
                 onChange: { settings.sidePadding = Double($0) / 100 }
             )
         }
+    }
+
+    // MARK: - Grid size
+
+    @ViewBuilder
+    private var gridSizeRow: some View {
+        NumRow(
+            label: "Grid size",
+            value: Int(round(settings.gridScale * 100)),
+            suffix: "%",
+            range: 1...100,
+            onChange: { settings.gridScale = Double($0) / 100 }
+        )
     }
 
     // MARK: - Icon type

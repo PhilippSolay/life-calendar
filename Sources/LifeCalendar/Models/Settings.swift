@@ -226,7 +226,7 @@ final class Settings: ObservableObject {
             SettingsKey.minScale: 0.08,
             SettingsKey.minOpacity: 0.12,
             SettingsKey.backgroundImagePath: "",
-            SettingsKey.gridScale: 1.0,
+            SettingsKey.gridScale: 0.5,
             SettingsKey.backgroundImageMode: BackgroundImageMode.fullScreen.rawValue,
             SettingsKey.dotImagePath: "",
             SettingsKey.gridOpacity: 1.0,
