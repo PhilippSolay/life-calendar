@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Per-screen layout for the Birthday flow. Layers a LiveBackdrop behind a
-/// vertical content stack of: headline → card content → SubProgress → footer.
+/// vertical content stack of: headline → card content → footer.
 ///
 /// The footer is a centered HStack: 44pt Back IconButton (transparent spacer
 /// when `showBack == false`), prominent xl GlassButton Continue, and a 44pt
@@ -10,8 +10,6 @@ struct BirthdayShell<CardContent: View>: View {
     let headlineSuffix: String?
     let primaryLabel: String
     let showBack: Bool
-    let stage: SubProgress.Stage
-    let completed: Set<SubProgress.Stage>
     let continueEnabled: Bool
     let onBack: () -> Void
     let onContinue: () -> Void
@@ -21,8 +19,6 @@ struct BirthdayShell<CardContent: View>: View {
         headlineSuffix: String? = nil,
         primaryLabel: String = "Continue",
         showBack: Bool = true,
-        stage: SubProgress.Stage,
-        completed: Set<SubProgress.Stage>,
         continueEnabled: Bool,
         onBack: @escaping () -> Void = {},
         onContinue: @escaping () -> Void,
@@ -31,8 +27,6 @@ struct BirthdayShell<CardContent: View>: View {
         self.headlineSuffix = headlineSuffix
         self.primaryLabel = primaryLabel
         self.showBack = showBack
-        self.stage = stage
-        self.completed = completed
         self.continueEnabled = continueEnabled
         self.onBack = onBack
         self.onContinue = onContinue
@@ -41,12 +35,11 @@ struct BirthdayShell<CardContent: View>: View {
 
     var body: some View {
         ZStack {
-            LiveBackdropView(showPreviewGrid: false)
+            LiveBackdropView(style: .photo)
 
             VStack(spacing: 40) {
                 headline
                 card()
-                SubProgress(active: stage, completed: completed)
                 footer
             }
             .padding(.vertical, 40)

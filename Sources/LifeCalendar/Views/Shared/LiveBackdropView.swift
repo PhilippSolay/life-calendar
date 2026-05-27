@@ -1,30 +1,38 @@
 import SwiftUI
 
-/// Full-bleed dark backdrop matching the design's "live" wallpaper preview:
-/// `#0a0a0a` base + three warm/violet/indigo radial gradients + a dark vertical
-/// linear gradient. Optionally overlays the user's current LifeGridView preview.
+/// Full-bleed backdrop that renders either:
+/// - `.photo` — the marketing photo gradient used behind the Birthday flow.
+/// - `.userWallpaper` — the user's actual wallpaper (color or image + the dot
+///   grid on top) rendered at full screen. This is what the Setup window shows
+///   behind the floating inspector; tweaks to settings reflect immediately.
 struct LiveBackdropView: View {
-    let showPreviewGrid: Bool
-    let previewSize: CGSize
+    enum Style {
+        case photo
+        case userWallpaper
+    }
 
-    init(
-        showPreviewGrid: Bool = true,
-        previewSize: CGSize = CGSize(width: 450, height: 450)
-    ) {
-        self.showPreviewGrid = showPreviewGrid
-        self.previewSize = previewSize
+    let style: Style
+
+    @EnvironmentObject private var settings: Settings
+
+    init(style: Style = .photo) {
+        self.style = style
     }
 
     var body: some View {
+        switch style {
+        case .photo:        photoBackdrop
+        case .userWallpaper: userWallpaperBackdrop
+        }
+    }
+
+    // MARK: - Photo backdrop (Birthday flow)
+
+    private var photoBackdrop: some View {
         ZStack {
-            // Dark base — #0a0a0a
             Color(red: 0x0a / 255.0, green: 0x0a / 255.0, blue: 0x0a / 255.0)
                 .ignoresSafeArea()
 
-            // The CSS background list paints the LAST entry at the bottom and the
-            // FIRST entry on top. Stack views accordingly: linear (bottom) →
-            // indigo radial → violet radial → warm radial (top). All composited
-            // with normal alpha blending — NOT plusLighter.
             LinearGradient(
                 stops: [
                     .init(color: Color(red: 0x1a / 255.0, green: 0x1a / 255.0, blue: 0x28 / 255.0), location: 0.0),
@@ -37,8 +45,6 @@ struct LiveBackdropView: View {
             .ignoresSafeArea()
 
             GeometryReader { geo in
-                // Painted in CSS-listed order so the first-listed CSS radial
-                // (warm) lands on top of the rest.
                 ZStack {
                     radialBlob(
                         center: UnitPoint(x: 0.90, y: 0.90),
@@ -64,40 +70,33 @@ struct LiveBackdropView: View {
                 }
             }
             .ignoresSafeArea()
-
-            if showPreviewGrid {
-                previewGrid
-                    .frame(width: previewSize.width, height: previewSize.height)
-                    .opacity(0.92)
-            }
         }
     }
 
-    @ViewBuilder
-    private var previewGrid: some View {
-        // Read Settings off the MainActor; this view is itself only constructed
-        // on the main thread.
-        let settings = Settings.shared
+    // MARK: - User wallpaper backdrop (Setup window)
+
+    private var userWallpaperBackdrop: some View {
+        // Renders exactly what the wallpaper PNG will look like, at the full
+        // window size. The user's chosen background color or image fills behind
+        // the grid; tweaks update in real time because we observe Settings.
         LifeGridView(
             progress: settings.progress(),
-            backgroundColor: .clear,
+            backgroundColor: Color(hex: settings.backgroundHex),
             foregroundColor: Color(hex: settings.foregroundHex),
             backgroundImage: settings.backgroundImage,
             gridScale: settings.gridScale,
             backgroundImageMode: settings.backgroundImageMode,
             dotImage: settings.dotImage,
-            gridOpacity: 0.92,
-            gridAnchor: .center,
-            sidePadding: 0,
+            gridOpacity: settings.gridOpacity,
+            gridAnchor: settings.gridAnchor,
+            sidePadding: settings.sidePadding,
             dotShape: settings.dotShape,
             iconSize: settings.iconSize,
             currentYearStyle: settings.currentYearStyle
         )
+        .ignoresSafeArea()
     }
 
-    /// Paints an elliptical radial blob centered at `center` (in the canvas's
-    /// unit space) extending out to roughly `size`. Stops fade to fully clear at
-    /// `outerStop` so the blobs blend into the underlying linear gradient.
     private func radialBlob(
         center: UnitPoint,
         size: CGSize,
@@ -118,7 +117,12 @@ struct LiveBackdropView: View {
     }
 }
 
-#Preview {
-    LiveBackdropView(showPreviewGrid: false)
+#Preview("Photo") {
+    LiveBackdropView(style: .photo)
+        .frame(width: 800, height: 600)
+}
+
+#Preview("User wallpaper") {
+    LiveBackdropView(style: .userWallpaper)
         .frame(width: 800, height: 600)
 }

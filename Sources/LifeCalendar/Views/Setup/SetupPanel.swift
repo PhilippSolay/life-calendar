@@ -8,7 +8,6 @@ struct SetupPanel: View {
     @GestureState private var gestureDrag: CGSize = .zero
 
     private let panelWidth: CGFloat = 360
-    private let dragClamp: CGFloat = 200
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -19,11 +18,10 @@ struct SetupPanel: View {
                             state = value.translation
                         }
                         .onEnded { value in
-                            let proposed = CGSize(
+                            dragOffset = CGSize(
                                 width: dragOffset.width + value.translation.width,
                                 height: dragOffset.height + value.translation.height
                             )
-                            dragOffset = clamp(proposed)
                         }
                 )
 
@@ -43,18 +41,8 @@ struct SetupPanel: View {
         .shadow(color: .black.opacity(0.7), radius: 40, x: 0, y: 20)
         .shadow(color: .black.opacity(0.5), radius: 18, x: 0, y: 8)
         .offset(
-            x: clamp(
-                CGSize(
-                    width: dragOffset.width + gestureDrag.width,
-                    height: dragOffset.height + gestureDrag.height
-                )
-            ).width,
-            y: clamp(
-                CGSize(
-                    width: dragOffset.width + gestureDrag.width,
-                    height: dragOffset.height + gestureDrag.height
-                )
-            ).height
+            x: dragOffset.width + gestureDrag.width,
+            y: dragOffset.height + gestureDrag.height
         )
     }
 
@@ -66,15 +54,6 @@ struct SetupPanel: View {
         case .layout:   LayoutPage()
         case .save:     SavePage()
         }
-    }
-
-    /// Clamp the proposed offset so the panel doesn't drift unreasonably far
-    /// from its centered anchor. Soft clamp — refinement can come later.
-    private func clamp(_ size: CGSize) -> CGSize {
-        CGSize(
-            width: min(max(size.width, -dragClamp), 36),
-            height: min(max(size.height, -dragClamp), dragClamp)
-        )
     }
 }
 

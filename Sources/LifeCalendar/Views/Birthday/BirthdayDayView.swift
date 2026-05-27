@@ -42,8 +42,6 @@ struct BirthdayDayView: View {
             headlineSuffix: headlineSuffix,
             primaryLabel: "Continue to setup",
             showBack: true,
-            stage: .day,
-            completed: [.year, .month],
             continueEnabled: draft.day != nil,
             onBack: onBack,
             onContinue: commitAndFinish

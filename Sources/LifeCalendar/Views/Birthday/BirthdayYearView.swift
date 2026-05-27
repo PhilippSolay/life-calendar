@@ -30,8 +30,6 @@ struct BirthdayYearView: View {
             headlineSuffix: nil,
             primaryLabel: "Continue",
             showBack: false,
-            stage: .year,
-            completed: [],
             continueEnabled: draft.year != nil,
             onBack: onBack,
             onContinue: onContinue

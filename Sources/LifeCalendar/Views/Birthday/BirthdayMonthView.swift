@@ -26,8 +26,6 @@ struct BirthdayMonthView: View {
             headlineSuffix: headlineSuffix,
             primaryLabel: "Continue",
             showBack: true,
-            stage: .month,
-            completed: [.year],
             continueEnabled: draft.month != nil,
             onBack: onBack,
             onContinue: onContinue

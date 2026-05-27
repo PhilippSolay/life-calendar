@@ -27,7 +27,7 @@ struct SetupRoot: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            LiveBackdropView(showPreviewGrid: true)
+            LiveBackdropView(style: .userWallpaper)
                 .ignoresSafeArea()
 
             TrafficLights()
